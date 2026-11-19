@@ -1,0 +1,34 @@
+# 登界 0.8 多人連線中繼（Cloudflare Worker + Durable Object）
+# 不放 account_id、token：部署時由環境變數 CLOUDFLARE_ACCOUNT_ID／CLOUDFLARE_API_TOKEN 帶入（GitHub Secrets）。
+name = "realmclimb-relay"
+main = "src/index.js"
+compatibility_date = "2026-04-07"
+
+[observability]
+enabled = true
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+# 免費方案只能用 SQLite 後端的 Durable Object，所以用 new_sqlite_classes。
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[vars]
+# 允許的 Origin（逗號分隔）。結尾 ":*" 代表任意埠號。
+# __PAGES_ORIGIN__ 會被 GitHub Actions 自動換成 https://<倉庫擁有者>.github.io；本機 wrangler dev 時它不會匹配任何網站，無妨。
+ALLOWED_ORIGINS = "__PAGES_ORIGIN__,http://localhost:*,http://127.0.0.1:*"
+# 房間白名單（逗號分隔）。
+ROOMS = "realmclimb-08"
+# 沒有 Origin 標頭的連線（非瀏覽器程式）要不要放行。正式環境保持 0。
+ALLOW_NO_ORIGIN = "0"
+MAX_PEERS = "24"          # 每房間人數上限（ws協定 §1 建議 24；要 60 就改這裡）
+MAX_MSG_BYTES = "65536"   # 單則上限（ws協定 §1：64KB；實際遊戲訊息 < 3KB，想收緊可改 8192）
+RATE_PER_SEC = "30"       # 每連線每秒上限（ws協定 §6）
+RATE_KILL_SECS = "5"      # 連續幾秒超速就斷線（close 4004）
+HELLO_TIMEOUT_MS = "5000"
+# 身分驗證模式：off＝不驗（第一版）；optional＝有帶 token 才驗；required＝一定要帶且驗證通過
+AUTH_MODE = "off"
+# SUPABASE_URL = "https://<專案>.supabase.co"   # AUTH_MODE 不是 off 時才需要（公開網址，不是金鑰）
