@@ -1,0 +1,48 @@
+# 部署多人連線中繼到 Cloudflare Workers。
+# 這是範本：要放到「倉庫根目錄」的 .github/workflows/ 才會生效（GitHub 只讀倉庫根目錄那一個）。
+# 假設倉庫根目錄有 relay/ 資料夾（內容就是本資料夾）。
+# 需要在 GitHub 倉庫的 Settings → Secrets and variables → Actions → Secrets 建立兩個 secret：
+#   CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID    （不要寫進任何檔案）
+# 選用：Variables 分頁建 PAGES_ORIGIN（例如 https://alice.github.io），不建就用「倉庫擁有者.github.io」。
+name: Deploy relay (Cloudflare)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'relay/**'
+      - '.github/workflows/deploy-relay.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-relay
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: 把 Pages 網址填進 wrangler.toml 的 Origin 白名單
+        env:
+          PAGES_ORIGIN: ${{ vars.PAGES_ORIGIN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          owner_lc="$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')"
+          origin="${PAGES_ORIGIN:-https://${owner_lc}.github.io}"
+          sed -i "s|__PAGES_ORIGIN__|${origin}|" relay/wrangler.toml
+          grep -n "ALLOWED_ORIGINS" relay/wrangler.toml
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: relay
+          wranglerVersion: '4'
+          command: deploy
