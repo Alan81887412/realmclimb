@@ -5,8 +5,9 @@ const data = {}, failed = {};
 const base = 'assets/model/';
 export const TIGER14 = typeof location !== 'undefined' && /[?&]tiger=14(&|$)/.test(location.search);      /* 預覽版切換：網址帶 ?tiger=14 才用 tiger14 新老虎（assets/model/tiger14.*），預設仍是舊老虎 */
 export const TIGER15 = typeof location !== 'undefined' && /[?&]tiger=15(&|$)/.test(location.search);      /* 預覽版切換：網址帶 ?tiger=15 才用 tiger15（assets/model/tiger15.*：加粗軀幹四肢、頭加高加厚、耳放大、條紋加粗）；體長已與舊老虎相同，不另設 VISK */
+export const TIGER16 = typeof location !== 'undefined' && /[?&]tiger=16(&|$)/.test(location.search);      /* 預覽版切換：網址帶 ?tiger=16 才用 tiger16（assets/model/tiger16.*：耳朵放大變圓、臉部配色、頰毛外蓬、腿加長＝腿關節與上半身關節上移 0.1）；體長同舊老虎，不另設 VISK */
 async function load(name) {
-  const file = name === 'tiger' && TIGER15 ? 'tiger15' : name === 'tiger' && TIGER14 ? 'tiger14' : name;
+  const file = name === 'tiger' && TIGER16 ? 'tiger16' : name === 'tiger' && TIGER15 ? 'tiger15' : name === 'tiger' && TIGER14 ? 'tiger14' : name;
   try {
     const [mr, br] = await Promise.all([fetch(base + file + '.json'), fetch(base + file + '.bin')]);
     if (!mr.ok || !br.ok) throw new Error('抓不到模型檔');

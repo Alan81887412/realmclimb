@@ -64,7 +64,7 @@ function limbSkin(m) {
    撲擊預備、威嚇時後腿與尾巴各自動作，橫跨這兩邊的三角形（霜背 301 個、老虎 27 個）就被拉成長片。
    處理：頂點的主導肢體（4 條腿、尾巴）和「離哪條骨鏈最近」不同、而且近很多（距離＜0.8 倍）時，把肢體骨權重整個改綁最近那一節；之後肢體頂點只留自己那一條肢體的權重。
    老虎（尾尖貼著後腿，27 個橫跨三角形）不重新認領，只移除橫跨三角形（接觸點，平常看不到）。同樣一個幾何做一次，用 userData.own08 記號。 */
-const OWN = { 'wolf!': { mv: 1, cut: 0 }, tiger: Object.assign({ mv: 0, cut: 1 }, typeof location !== 'undefined' && /[?&]tiger=1[45](&|$)/.test(location.search) ? { tip: 0.2 } : {}) };      /* ?tiger=15 的尾巴幾何與綁定沿用 tiger14，同樣開 tip */      /* tip：只在 ?tiger=14 才開。tiger14 尾尖捲在臀上，貼臀那面（第 2 節尾骨起 0.2 以內；第 1 節只算臀後方 z＜-0.62）被自動蒙皮綁成骨盆，尾巴一動就拉出長片與破口 → 改綁最近尾骨 */      /* mv：重新認領頂點；cut：移除橫跨不同肢體的三角形。老虎的尾尖在綁定姿勢貼著後腿，重新認領反而讓交界變多，改成只切；霜背的臀與尾根是連續的皮，切會露洞，只重新認領 */
+const OWN = { 'wolf!': { mv: 1, cut: 0 }, tiger: Object.assign({ mv: 0, cut: 1 }, typeof location !== 'undefined' && /[?&]tiger=1[456](&|$)/.test(location.search) ? { tip: 0.2 } : {}) };      /* ?tiger=15／16 的尾巴幾何與綁定沿用 tiger14，同樣開 tip */      /* tip：只在 ?tiger=14 才開。tiger14 尾尖捲在臀上，貼臀那面（第 2 節尾骨起 0.2 以內；第 1 節只算臀後方 z＜-0.62）被自動蒙皮綁成骨盆，尾巴一動就拉出長片與破口 → 改綁最近尾骨 */      /* mv：重新認領頂點；cut：移除橫跨不同肢體的三角形。老虎的尾尖在綁定姿勢貼著後腿，重新認領反而讓交界變多，改成只切；霜背的臀與尾根是連續的皮，切會露洞，只重新認領 */
 function ownSkin(m) {
   const geo = m.mesh && m.mesh.geometry, key = m.type + (m.elite ? '!' : ''), O = OWN[key]; if (!geo || geo.userData.own08 || !O) return; geo.userData.own08 = 1;
   const si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, pos = geo.attributes.position, bn = m.sp.bones; if (!si || !sw || !pos) return;
