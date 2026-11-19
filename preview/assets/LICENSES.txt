@@ -1,0 +1,236 @@
+這個頁面使用的第三方素材
+
+== KayKit Adventurers（角色與動作）==
+
+	KayKit : Adventurers Character Pack (1.0)
+
+	Created/distributed by Kay Lousberg (www.kaylousberg.com)
+	Creation date: 13/03/2023 09:00
+
+			------------------------------
+
+	License: (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	This content is free to use in personal, educational and commercial projects.
+
+	Support me by using a brand resource provided in this pack or by crediting Kay Lousberg, www.kaylousberg.com (this is not mandatory)
+
+			------------------------------
+
+    This asset pack is here thanks to all the wonderful people who support KayKit on Patreon and those who buy our EXTRA or SOURCE packs on itch.io.
+
+	And a big, special thank you to my Super Supporters:
+
+	- Brian McBarron
+	- Silva
+
+
+
+			------------------------------
+
+
+	Patreon:  http://patreon.com/kaylousberg
+
+	Follow on Twitter for updates:
+	http://twitter.com/KayLousberg
+
+== KayKit Medieval Hexagon Pack（建築、樹、岩石、道具）==
+	
+
+	KayKit : Medieval Hexagon Pack (1.0)
+
+	Created/distributed by Kay Lousberg (www.kaylousberg.com)
+	Creation date: 26/04/2024 12:00
+
+			------------------------------
+
+	License: (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+	This content is free to use in personal, educational and commercial projects.
+
+	Support me by crediting Kay Lousberg, www.kaylousberg.com (this is not mandatory)
+
+			------------------------------
+
+	This asset pack is here thanks to all the wonderful people who support KayKit on Patreon and those who buy EXTRA or SOURCE packs on itch.io.
+
+	And a big, special thank you to my Super Supporters on Patreon:
+
+	- Brian McBarron
+	- Silva
+	- Eric Allamby
+	- Joseph Preston
+	- Alexander Würfl
+	- Danielle Smith
+	- 7dg2s
+	- Leon Burkhardt
+	- PSYLESS
+	- NickyBHobbying
+	- Emilia
+	- Rudolf Bouzek
+
+
+
+			------------------------------
+
+
+	Patreon:  http://patreon.com/kaylousberg
+
+	Follow here for updates:
+	http://twitter.com/KayLousberg
+	https://mastodon.gamedev.place/@Kay
+
+== ambientCG（草地與岩石貼圖）==
+CC0 1.0 Universal，https://ambientcg.com
+
+== three.js ==
+The MIT License
+
+Copyright © 2010-2024 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+== 音效、環境音與音樂（assets/audio/）==
+
+-- Kenney：sfx-kenney.mp3、sfx-06.mp3、sfx-07.mp3（其中取自 Kenney 的段落） --
+	Interface Sounds (1.0)、UI Audio、RPG Audio、Impact Sounds (1.0)、Music Jingles
+	Created/distributed by Kenney (www.kenney.nl)
+	License: (Creative Commons Zero, CC0)
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+-- 0 A.D.：sfx-0ad-core.mp3、sfx-0ad-extra.mp3、amb-day.mp3、amb-wind.mp3、amb-shore.mp3、amb-falls.mp3、amb-crowd.mp3、sfx-0ad-06.mp3、amb-falls-flow.mp3、amb-falls-spray.mp3、amb-lap-wave.mp3、
+           mus-town.mp3、mus-meadow.mp3、mus-forest.mp3、mus-canyon.mp3、mus-lair.mp3、mus-battle.mp3 --
+	Sound effects, ambience and music from 0 A.D.
+	Copyright (C) Wildfire Games — https://www.wildfiregames.com/
+	Licensed under the Creative Commons Attribution-Share Alike 3.0 (CC BY-SA 3.0) license:
+	http://creativecommons.org/licenses/by-sa/3.0/
+	原始檔位於 0 A.D. 的 binaries/data/mods/public/audio/（actor/singlesteps、attack/weapon、attack/impact、actor/fauna、ambient、music）。
+	音樂原曲：Harvest_Festival（mus-town）、The_Road_Ahead（mus-meadow）、Highland_Mist（mus-forest）、Mountain_Idyll（mus-canyon）、
+	Calm_Before_the_Storm（mus-lair）、Honor_Bound（mus-battle）。
+	修改說明：以上檔案由原始檔截取片段、去頭尾空白、調整音量、濾除超低頻、製作循環接點、多段合併為單一檔案，並轉成 MP3。
+	這些修改後的檔案同樣以 CC BY-SA 3.0 授權提供；每一段對應的原始檔名與截取位置列在本專案的音效包清單。
+
+-- 黃石公園聲音庫：sfx-beast-nps.mp3 --
+	Wolf, grizzly bear and elk recordings courtesy of the National Park Service (Yellowstone National Park sound library).
+	https://www.nps.gov/yell/learn/photosmultimedia/sounds-wolves.htm
+	https://www.nps.gov/yell/learn/photosmultimedia/grizzlysounds.htm
+	https://www.nps.gov/yell/learn/photosmultimedia/sounds-elk.htm
+	Public domain（美國聯邦政府作品）。經過剪輯與轉檔。
+
+-- 猛虎吼聲：sfx-tiger.mp3 --
+	"tiger roar" by videog
+	https://freesound.org/people/videog/sounds/149190
+	License: Creative Commons Attribution 4.0 (CC BY 4.0) — https://creativecommons.org/licenses/by/4.0/
+	修改說明：截取片段、修復削波、濾波、調整音量、合併為單一檔案並轉成 MP3。
+
+-- 法術聲：sfx-spell.mp3 --
+	"Healing Spell Impacts" by Lentikula
+	https://lentikula.itch.io/healing-spell-impacts
+	License: Creative Commons Zero, CC0（依作者頁面；下載的壓縮檔內沒有附授權文字）
+
+-- 本專案程式合成：sfx-06.mp3、sfx-07.mp3（其中合成的段落）、amb-fire-a.mp3、amb-fire-b.mp3、amb-fire-c.mp3、amb-lap-soft.mp3 --
+	由萬獸原野開發團隊以程式（numpy／scipy）合成，沒有使用第三方素材。以 CC0 釋出。
+	sfx-06.mp3、sfx-07.mp3 另含上面 Kenney 段落列出的素材包剪輯而成的段落（CC0）；整個檔案可依 CC0 使用。
+
+-- BigSoundBank：amb-forest.mp3、amb-night.mp3 --
+	"Forest" (ID 0100) — https://bigsoundbank.com/forest-s0100.html
+	"Campaign at night 4" (ID 1880) — https://bigsoundbank.com/campagne-la-nuit-4-s1880.html
+	BigSoundBank.com — License: Creative Commons Zero, CC0
+
+-- 使用者提供的實錄（d7-snd3）：sfx-rec.mp3、sfx-beast8.mp3、amb-fire-r.mp3、amb-fire-rb.mp3、amb-stew.mp3、amb-marsh-day.mp3、amb-marsh-night.mp3 --
+	使用者從下面三個來源挑選下載，由萬獸原野開發團隊剪輯、降噪、修復削波、濾波、壓縮、加短殘響、變調、疊合、製作循環、合併並轉成 MP3。
+	BigSoundBank.com — License: Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
+	  "Fireplace #2" (ID 0031) — https://bigsoundbank.com/fireplace-2-s0031.html
+	  "Big Branching Fire #1" (ID 0987) — https://bigsoundbank.com/big-branching-fire-1-s0987.html
+	  "Rissole in a pan" (ID 0314) — https://bigsoundbank.com/rissole-in-a-pan-s0314.html
+	  "Frying in the Pan #1" (ID 0143) — https://bigsoundbank.com/sound-0143-friture-a-la-poele-1.html
+	  "Water bubbles" (ID 0150) — https://bigsoundbank.com/sound-0150-bulles-d-eau.html
+	  "Bottle clink" (ID 0487) — https://bigsoundbank.com/bottle-clink-s0487.html
+	  "Wine Stopper #3" (ID 1719) — https://bigsoundbank.com/wine-stopper-3-s1719.html
+	  "Serving Wine #1" (ID 1721) — https://bigsoundbank.com/sound-1721-servir-du-vin-1.html
+	  "Glass of water, filling #1" (ID 1242) — https://bigsoundbank.com/glass-of-water-filling-1-s1242.html
+	  "Apple crunched #2" (ID 1114) — https://bigsoundbank.com/apple-crunched-2-s1114.html
+	  "Eat a Rusk" (ID 0407) — https://bigsoundbank.com/sound-0407-manger-une-biscotte.html
+	  "Drink from the gourd #1" (ID 3247) — https://bigsoundbank.com/drink-from-the-gourd-1-s3247.html
+	  "Pond in a Field" (ID 0691) — https://bigsoundbank.com/pond-in-a-field-s0691.html
+	  "Frogs #2" (ID 0998) — https://bigsoundbank.com/frogs-2-s0998.html
+	  "Frogs #1" (ID 0997) — https://bigsoundbank.com/frogs-1-s0997.html
+	  "Splash, Small #1" (ID 1529) — https://bigsoundbank.com/splash-small-1-s1529.html
+	  "Splash, Big #1" (ID 1519) — https://bigsoundbank.com/splash-big-1-s1519.html
+	  "Splash, big #2" (ID 1520) — https://bigsoundbank.com/splash-big-2-s1520.html
+	  "Large spring" (ID 0206) — https://bigsoundbank.com/large-spring-s0206.html
+	  "Iron bar falls #2" (ID 0235) — https://bigsoundbank.com/iron-bar-falls-2-s0235.html
+	  "Heavy chain" (ID 0359) — https://bigsoundbank.com/heavy-chain-s0359.html
+	  "Bells of Santa Claus #1" (ID 0585) — https://bigsoundbank.com/bells-of-santa-claus-s0585.html
+	  "Road map #4" (ID 2799) — https://bigsoundbank.com/road-map-4-s2799.html
+	  "Torn Paper #1" (ID 0018) — https://bigsoundbank.com/torn-paper-s0018.html
+	  "Torn and creased page #1" (ID 1225) — https://bigsoundbank.com/torn-and-creased-page-1-s1225.html
+	  "Pencil #1" (ID 0221) — https://bigsoundbank.com/pencil-s0221.html
+	  "Fishing reel, medium" (ID 1436) — https://bigsoundbank.com/fishing-reel-medium-s1436.html
+	  "Horse gallop, tall grass" (ID 1850) — https://bigsoundbank.com/horse-gallop-tall-grass-s1850.html
+	  "Breath of a horse #2" (ID 0286) — https://bigsoundbank.com/breath-of-a-horse-2-s0286.html
+	  "Pack of Dogs" (ID 2953) — https://bigsoundbank.com/pack-of-dogs-s2953.html
+	Freesound — License: Creative Commons 0 (CC0 1.0)
+	  "Blacksmith Workshop" by thefilmbakery — https://freesound.org/people/thefilmbakery/sounds/137836
+	  "hiss pipe sharp like propane gas" by kyles — https://freesound.org/s/453442
+	  "snakeecho2.wav" by novino — https://freesound.org/s/45581
+	National Park Service, Yellowstone National Park sound library — Public domain（美國聯邦政府作品）
+	  Bison rut (recorded by Jennifer Jerrett) — https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/YELL-BisonRut-JenniferJerrett.mp3
+	  Red-winged blackbird — https://home.nps.gov/yell/learn/photosmultimedia/sounds-redwingedblackbird.htm
+
+-- 使用者提供的實錄（第二輪，d7-snd3）：sfx-rec2.mp3、amb-tavern.mp3、amb-rain.mp3 --
+	使用者挑選下載，由萬獸原野開發團隊剪輯、降噪、修復削波、濾波、變調與共振峰調整、疊合、製作循環、合併並轉成 MP3。
+	BigSoundBank.com — License: Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
+	  "Quenching, cooling #2" (ID 1695) — https://bigsoundbank.com/quenching-cooling-2-s1695.html
+	  "Trap" (ID 1234) — https://bigsoundbank.com/trap-s1234.html
+	  "Cry of Pain" (ID 2361) — https://bigsoundbank.com/cry-of-pain-s2361.html
+	  "Breathless Man" (ID 1103) — https://bigsoundbank.com/breathless-man-s1103.html
+	  "Breathless Woman" (ID 1345) — https://bigsoundbank.com/breathless-woman-s1345.html
+	  "Shoes in the Water" (ID 0690) — https://bigsoundbank.com/shoes-in-the-water-s0690.html
+	  "Rowing slowly" (ID 1514) — https://bigsoundbank.com/rowing-slowly-s1514.html
+	  "Coffee Shop at the Capucins" (ID 2561) — https://bigsoundbank.com/coffee-shop-at-the-capucins-s2561.html
+	  "Whoosh #3" (ID 1795) — https://bigsoundbank.com/whoosh-3-s1795.html
+	  "Summer Rain on Terrace" (ID 1019) — https://bigsoundbank.com/summer-rain-on-terrace-s1019.html
+	  "Thunder #1" (ID 2718) — https://bigsoundbank.com/thunder-s2718.html
+	  "2 small dogs bark and growl #2" (ID 1061) — https://bigsoundbank.com/small-dogs-bark-growl-2-s1061.html
+	Freesound — License: Creative Commons 0 (CC0 1.0)
+	  "G12-47-Lions Roaring.wav" by craigsmith — https://freesound.org/s/437980
+	National Park Service, Yellowstone National Park sound library — Public domain（美國聯邦政府作品）
+	  Bison Eating (recorded by Jennifer Jerrett) — https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-YELLBisonEating150313.mp3
+
+-- 使用者提供的實錄（第三輪，0.8 菁英與競技場）：sfx-08.mp3、sfx-08c.mp3、amb-pit.mp3 --
+	使用者挑選下載，由萬獸原野開發團隊剪輯、降噪、濾波、變調、疊合、製作循環、合併並轉成 MP3。（大蟒蛇嘶、沼蟒起身、獸坑水泡另外用到前幾輪已列出的 novino 蛇、kyles 噴氣、Splash big #2、Water bubbles、Iron bar。）
+	BigSoundBank.com — License: Creative Commons Zero (CC0 1.0), http://creativecommons.org/publicdomain/zero/1.0/
+	  "Barking dog #1" (ID 0916) — https://bigsoundbank.com/barking-dog-s0916.html
+	  "Gong, strong #1" (ID 1483) — https://bigsoundbank.com/gong-strong-1-s1483.html
+	  "Gong, sweet" (ID 1482) — https://bigsoundbank.com/gong-sweet-s1482.html
+	  "Horn #5" (ID 2524) — https://bigsoundbank.com/horn-5-s2524.html
+	  "Applause about 25-50 people #1" (ID 0812) — https://bigsoundbank.com/applause-about-25-50-people-1-s0812.html
+	  "Wooden barn door" (ID 0538) — https://bigsoundbank.com/wooden-barn-door-s0538.html
+	  "Manual chain hoist, mounted" (ID 1133) — https://bigsoundbank.com/manual-chain-hoist-mounted-s1133.html
+	  "Medium chain" (ID 0619) — https://bigsoundbank.com/medium-chain-s0619.html
+	National Park Service, Yellowstone National Park sound library — Public domain（美國聯邦政府作品）
+	  Bison bellowing, Mary Mountain trail — https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-YELLMM8K2005914Bison.mp3
+
+-- 0.8 新區與新野獸音效（X11）：sfx-11.mp3、amb-ridge／frost／salt／giant／reed／drip／hush／breath-a／breath-b.mp3 --
+	剪輯、濾波、變調、疊合、製作循環並轉成 MP3；猴、猩猩、刺、拍胸、鑰匙串、巨門悶響等為程序合成（無版權）。
+	BigSoundBank.com — CC0：Breath of a horse #2 (0286)、Horse gallop in tall grass (1850)、Heavy chain (0359)、Bells of Santa Claus (0585)、Bottle clink (0487)、Trap (1234)、Shoes in the water (0690)、Splash big #1 (1519)／#2 (1520)、Manual chain hoist, mounted (1133)；Freesound 453442 "hiss pipe sharp" by kyles — CC0
+	0 A.D.（CC BY-SA 3.0，https://www.wildfiregames.com/）：ambient/weather/windstorm_11、wind_11；actor/fauna 的 chicken、pig、goat；singlesteps 的 gravel。這些修改後的檔案同樣以 CC BY-SA 3.0 提供。

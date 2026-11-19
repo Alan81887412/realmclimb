@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登界 REALMCLIMB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+:root{
+  /* 版面：全螢幕 3D 場景為底；左上角色狀態、右上懷錶式羅盤、下方動作列與經驗條；面板以羊皮紙墨色配黃銅邊。 */
+  color-scheme:dark;
+  --ink:#f4ecd9; --ink-dim:#b9b2a0; --ink-faint:#8a8576;
+  --panel:rgba(20,22,18,.86); --panel-solid:#171a15; --line:rgba(244,236,217,.16); --line-strong:rgba(244,236,217,.3);
+  --ember:#f2a24a; --hp:#d9553f; --stamina:#e3b84f; --mana:#5a9be0; --xp:#7fb6e6;
+  --ok:#8fd08a; --warn:#e8c25c; --bad:#e2725f; --safe:#7fd6c4;
+  --brass:#c9a35a; --brass-dark:#7a5c28; --brass-light:#f0d79a;
+  --font-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#14160f;color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5;overflow:hidden;user-select:none;-webkit-user-select:none}
+canvas#scene{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;cursor:crosshair}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+[hidden]{display:none!important}
+button{font:inherit;color:var(--ink);background:rgba(244,236,217,.08);border:1px solid var(--line);border-radius:4px;padding:5px 10px;cursor:pointer}
+button:hover:not(:disabled){background:rgba(244,236,217,.16)}
+button:disabled{opacity:.38;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+button.primary{background:var(--ember);border-color:var(--ember);color:#241a0c;font-weight:700;padding:9px 18px;font-size:15px}
+button.primary:hover:not(:disabled){background:#f7b367}
+kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;background:rgba(0,0,0,.35);font:500 11px/18px var(--font-body);text-align:center;color:var(--ink)}
+.s-ok{color:var(--ok)} .s-warn{color:var(--warn)} .s-bad{color:var(--bad)}
+
+/* ---------- 世界標籤 ---------- */
+.tag{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;white-space:nowrap;will-change:transform}
+.tag-name{font-size:12px;font-weight:500;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+.tag.me .tag-name{color:var(--ember)} .tag.other .tag-name{color:#bcd9f0} .tag.npc .tag-name{color:var(--warn)} .tag.mon .tag-name{color:#f0d8cf;font-size:11px} .tag.elite .tag-name{color:#ffb86b;font-family:var(--font-display);font-size:13px}
+.tag-bar{width:46px;height:4px;background:rgba(0,0,0,.6);border-radius:2px;overflow:hidden}
+.tag-bar i{display:block;height:100%;background:var(--hp);transform-origin:left center}
+.tag.calm .tag-name{color:#e6dcc0} .tag.rage .tag-name{color:#ff6a4a;text-shadow:0 1px 2px #000,0 0 8px rgba(255,60,30,.8)} .tag.rage .tag-bar i{background:#ff7a3a}
+/* 等級差：高兩級以上橘紅加 ▲，低三級以上變灰加 ▽（ui.js 每半秒更新） */
+.tag.lvhi .tag-name{color:#ff8a5c;font-weight:700} .tag.lvhi .tag-name::after{content:" ▲";font-size:10px;color:#ffb38f} .tag.lvlo .tag-name{color:#a9a595} .tag.lvlo .tag-name::after{content:" ▽";font-size:9px}
+.tag.me .tag-bar,.tag.npc .tag-bar{display:none} .tag.other .tag-bar i{background:var(--ok)} .tag.elite .tag-bar{width:84px;height:5px}
+.tag-say{order:-1;max-width:240px;white-space:normal;padding:4px 9px;border-radius:8px;background:rgba(244,236,217,.94);color:#241d12;font-size:12.5px;line-height:1.4;opacity:0;transition:opacity .2s;margin-bottom:3px}
+.tag-say.on{opacity:1}
+.dmg{position:absolute;left:0;top:0;font-family:var(--font-display);font-weight:900;font-size:19px;text-shadow:0 2px 0 rgba(0,0,0,.7),0 0 8px rgba(0,0,0,.6);white-space:nowrap;will-change:transform,opacity}
+.dmg.mine{color:#ffe7a8} .dmg.heavy{color:#ffb24a;font-size:27px} .dmg.other{color:#c9d3da;font-size:15px} .dmg.hurt{color:#ff6a55;font-size:22px} .dmg.exp{color:var(--xp);font-size:14px;font-family:var(--font-body);font-weight:700} .dmg.heal{color:var(--ok)} .dmg.block{color:#d8dde2;font-size:16px} .dmg.perfect{color:#9fe4ff;font-size:23px;letter-spacing:.12em;text-shadow:0 2px 0 rgba(0,0,0,.7),0 0 12px rgba(90,190,255,.9)} .dmg.call{color:#ffd9a0;font-size:20px;letter-spacing:.14em;text-shadow:0 2px 0 rgba(0,0,0,.75),0 0 10px rgba(255,90,40,.8)}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;pointer-events:none;z-index:5;transition:opacity .3s}
+body:not(.playing) .hud{opacity:0}
+#plate{top:16px;left:16px;display:flex;gap:11px;align-items:center}
+#lvBadge{width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#3b3324,#15130d 70%);border:2px solid var(--brass);box-shadow:0 0 0 2px rgba(0,0,0,.6),0 3px 10px rgba(0,0,0,.5);font-family:var(--font-display);font-weight:900;font-size:22px;color:var(--brass-light);position:relative}
+#lvBadge small{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font:700 9px var(--font-body);letter-spacing:.14em;color:var(--brass);background:#15130d;padding:0 4px}
+#plate .col{width:236px}
+#plate .who{display:flex;align-items:baseline;gap:8px;text-shadow:0 1px 3px #000}
+#plate .who b{font-family:var(--font-display);font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#plate .who span{font-size:11.5px;color:var(--ink-dim)}
+.bar{position:relative;height:13px;background:rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.7);box-shadow:0 0 0 1px var(--line);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{position:absolute;inset:0;transform-origin:left center;transition:transform .12s linear}
+.bar.hp i{background:linear-gradient(#ee7a5f,var(--hp) 60%,#a93b2b)}
+.bar.st{height:8px} .bar.st i{background:linear-gradient(#f3d67a,var(--stamina))} .bar.st.guard{box-shadow:0 0 0 1px var(--brass-light),0 0 8px rgba(240,215,154,.6)} .bar.st.low i{background:linear-gradient(#f0a070,#c9552f)}
+.bar.mp{height:11px} .bar.mp i{background:linear-gradient(#9fd0ff,var(--mana))} .bar.mp em{font-size:9.5px;line-height:1} .bar.mp.low{box-shadow:0 0 0 1px #7fb6ff,0 0 7px rgba(90,155,224,.7)}
+#buffs{min-height:17px;margin-top:3px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#9fe4ff;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+.bar em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:10.5px;font-weight:500;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+#ptsBtn{pointer-events:auto;margin-top:7px;padding:2px 9px;font-size:12px;border-color:var(--ember);color:var(--ember);background:rgba(242,162,74,.12);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{background:rgba(242,162,74,.3)}}
+
+/* 右上：懷錶式羅盤 */
+#watch{top:26px;right:22px;width:196px;display:flex;flex-direction:column;align-items:center}
+#watchCase{position:relative;width:196px;height:196px;border-radius:50%;background:conic-gradient(from 210deg,var(--brass-dark),var(--brass-light) 12%,var(--brass) 26%,var(--brass-dark) 44%,var(--brass-light) 60%,var(--brass) 76%,var(--brass-dark));box-shadow:0 6px 18px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,240,200,.5);pointer-events:auto;cursor:pointer}
+#watchCase::before{content:"";position:absolute;left:50%;top:-15px;width:20px;height:17px;transform:translateX(-50%);border-radius:5px 5px 2px 2px;background:linear-gradient(90deg,var(--brass-dark),var(--brass-light) 45%,var(--brass-dark));box-shadow:0 -1px 0 rgba(255,240,200,.5)}
+#watchCase::after{content:"";position:absolute;left:50%;top:-27px;width:22px;height:22px;transform:translateX(-50%);border-radius:50%;border:3px solid var(--brass);box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.5);z-index:-1}
+#watchDial{position:absolute;inset:9px;border-radius:50%;background:#12140f;box-shadow:inset 0 0 0 2px #2a2416,inset 0 0 14px rgba(0,0,0,.9);overflow:hidden}
+#mini{position:absolute;inset:13px;width:calc(100% - 26px);height:calc(100% - 26px);border-radius:50%}
+#watchTicks{position:absolute;inset:0;width:100%;height:100%}
+#watchGlass{position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.16),transparent 42%);box-shadow:inset 0 0 22px rgba(0,0,0,.55);pointer-events:none}
+#sunArm{position:absolute;inset:0;pointer-events:none}
+#sunDot{position:absolute;left:50%;top:1px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff6c8,#f5b942 60%,#c07a1c);box-shadow:0 0 8px 2px rgba(255,200,90,.7),0 0 0 1.5px #2a2416}
+#sunDot.moon{background:radial-gradient(circle at 36% 34%,#fbfdff,#b9c8dc 62%,#7889a3);box-shadow:0 0 8px 2px rgba(170,200,255,.55),0 0 0 1.5px #2a2416}
+#zoneLine{margin-top:9px;padding:3px 12px 5px;border-radius:5px;background:rgba(20,22,18,.6);text-align:center;text-shadow:0 1px 3px #000}
+#zoneLine b{font-family:var(--font-display);font-size:15px;letter-spacing:.08em}
+#zoneLine span{display:block;font-size:11.5px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+
+/* 下方：動作列與經驗條 */
+#bottom{left:50%;bottom:14px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;width:max-content;max-width:64vw}
+#slots{display:flex;gap:6px;align-items:flex-end}
+.slot{position:relative;width:52px;height:52px;border-radius:7px;background:var(--panel);border:1px solid var(--line-strong);display:grid;place-items:center;font-family:var(--font-display);font-size:19px;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.slot kbd{position:absolute;left:-5px;top:-7px}
+.slot em{position:absolute;right:4px;bottom:1px;font:700 11px var(--font-body);font-style:normal;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+.slot small{position:absolute;left:-6px;right:-6px;bottom:-17px;text-align:center;font:400 10.5px var(--font-body);color:#d6cfbc;text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot.use{pointer-events:auto;cursor:pointer} .slot.empty{color:var(--ink-faint)} .slot.empty em{color:var(--bad)}
+/* 只是提醒按鍵的四格（輕重攻擊、格擋、閃避）小一號；有數量與冷卻的回復、技能維持大格 */
+.slot.key{width:44px;height:44px} .slot.key .ai{width:32px;height:32px}
+/* 回復：藥水與獸肉各一格。Q 的鍵帽掛在「現在按下去會用」的那一格上（戰鬥中是藥水，平時先吃肉），另一格變暗；冷卻兩格共用 */
+#slotHeal{position:relative;display:flex;gap:3px} .slot.hc{width:44px;overflow:hidden;transition:border-color .2s,filter .2s} .slot.hc .ai{width:32px;height:32px;margin-top:-9px} .slot.hc em{left:0;right:0;bottom:2px;text-align:center;font-size:11.5px}
+#slotHeal.pick-potion .hc.pot,#slotHeal.pick-meat .hc.meat{border-color:var(--brass)} #slotHeal.pick-potion .hc.meat,#slotHeal.pick-meat .hc.pot{filter:brightness(.62) saturate(.7)}
+#slotHeal .hc.empty .ai{filter:grayscale(1) brightness(.55)}
+#healKey{position:absolute;left:-5px;top:-7px;z-index:2;transition:left .25s} #slotHeal.pick-meat #healKey{left:42px}
+#slotHeal>.cd{position:absolute;inset:0;border-radius:6px;background:rgba(0,0,0,.66);transform-origin:bottom;transform:scaleY(0);pointer-events:none}
+#healT{position:absolute;left:0;right:0;top:12px;text-align:center;font:700 19px var(--font-display);text-decoration:none;text-shadow:0 1px 3px #000;pointer-events:none}
+#slotHeal>small{position:absolute;left:-10px;right:-10px;bottom:-17px;text-align:center;font:400 10.5px var(--font-body);color:#d6cfbc;text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.9);white-space:nowrap}
+.slot.hc .prog{position:absolute;inset:0;background:linear-gradient(rgba(143,208,138,.25),rgba(143,208,138,.6));box-shadow:inset 0 2px 0 #c9f5c4;transform-origin:bottom;transform:scaleY(0)}
+#slotHeal.drinking>small{color:var(--ok);font-weight:700} #slotHeal.brk>small{color:var(--bad);font-weight:700} #slotHeal.brk .hc{animation:healBrk .5s ease-out}
+@keyframes healBrk{0%,40%{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad),0 0 12px rgba(226,114,95,.8)}}
+.slot .cd{position:absolute;inset:0;border-radius:6px;background:rgba(0,0,0,.6);transform-origin:bottom;transform:scaleY(0)}
+.slot.skill{pointer-events:auto;cursor:pointer;border-color:rgba(201,163,90,.55)} .slot.skill span{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 -3px 5px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.5)}
+.slot.skill em{right:0;left:0;bottom:14px;text-align:center;font-size:17px;z-index:1} .slot.skill.empty{border-style:dashed;border-color:var(--line)} .slot.skill.empty span{box-shadow:none} .slot.skill.empty small{color:var(--ink-faint)}
+.slot.skill.lack span{filter:grayscale(.85) brightness(.6)} .slot.skill.gcd .cd{background:rgba(0,0,0,.42)} #slots .sep{width:1px;align-self:stretch;margin:4px 3px;background:var(--line-strong)}
+#tip{left:max(332px,calc(50% - 260px));right:max(232px,calc(50% - 260px));top:14px;padding:8px 14px 9px;border-radius:6px;border:1px solid var(--brass-dark);border-left:3px solid var(--brass);background:rgba(20,22,18,.9);opacity:0;transition:opacity .4s;pointer-events:none}
+#tip.on{opacity:1;pointer-events:auto;cursor:pointer} #tip b{display:block;font-size:10.5px;letter-spacing:.2em;color:var(--brass)} #tip span{display:block;font-size:13px;line-height:1.55}
+#xpWrap{width:100%;margin-top:14px}
+#xpBar{position:relative;height:9px;background:rgba(0,0,0,.6);border-radius:5px;box-shadow:0 0 0 1px var(--line);overflow:hidden}
+#xpBar i{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(90deg,#4f8fca,var(--xp));transition:transform .35s ease-out}
+#xpBar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(0,0,0,.5) calc(10% - 1px) 10%)}
+#xpText i{font-style:normal;color:var(--brass-light)} #xpText{margin-top:3px;text-align:center;font-size:11px;color:#d6cfbc;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.9)}
+#prompt{left:50%;bottom:132px;transform:translateX(-50%);padding:6px 14px;border-radius:18px;background:var(--panel);border:1px solid var(--line-strong);font-size:13px;opacity:0;transition:opacity .15s}
+#prompt.on{opacity:1}
+#toast{left:max(332px,calc(50% - 260px));right:max(232px,calc(50% - 260px));top:104px;width:fit-content;margin:0 auto;text-align:center;padding:5px 16px;font-size:13px;border-radius:5px;background:rgba(20,22,18,.9);border:1px solid var(--line);opacity:0;transition:opacity .25s}
+#toast.on{opacity:1}
+
+/* 右下：選單 */
+#menu{right:16px;bottom:14px;display:flex;gap:6px;pointer-events:auto}
+#menu button{display:flex;flex-direction:column;align-items:center;gap:1px;width:49px;padding:6px 0 4px;background:var(--panel);font-size:12px;position:relative}
+#menu button kbd{font-size:10px;line-height:15px;min-width:17px}
+#menu button .dot{position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--ember);box-shadow:0 0 6px var(--ember)}
+
+/* 左下：對話 */
+#chat{left:16px;bottom:14px;width:min(360px,34vw)}
+#chatLog{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;max-height:150px;overflow:hidden;font-size:12.5px;text-shadow:0 1px 2px #000,0 0 5px rgba(0,0,0,.7)}
+#chatLog p{flex:none;margin:0;overflow-wrap:anywhere;transition:opacity 1s;align-self:flex-start;padding:1px 7px;border-radius:3px;background:rgba(12,13,10,.5)} #chatLog p.fade{opacity:0} #chat:not(.open) #chatLog p.old{display:none}
+#chat.open #chatLog p.fade{opacity:.75} #chatLog{-webkit-mask-image:linear-gradient(transparent,#000 14px);mask-image:linear-gradient(transparent,#000 14px)}
+#chatLog .sys{color:var(--ink-dim)} #chatLog b{font-weight:700}
+#chatIn{pointer-events:auto;width:100%;margin-top:6px;padding:6px 10px;border-radius:4px;border:1px solid var(--line);background:rgba(0,0,0,.45);color:var(--ink);font:inherit;user-select:text;-webkit-user-select:text}
+#chatIn::placeholder{color:var(--ink-faint)}
+
+/* 右側：掉落紀錄 */
+#feed{right:22px;top:300px;width:290px;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+#feed p{margin:0;padding:3px 10px;border-radius:3px;background:linear-gradient(270deg,rgba(20,22,18,.85),rgba(20,22,18,.2));border-right:2px solid var(--brass);font-size:12.5px;animation:feedIn .25s ease-out;transition:opacity .6s}
+@keyframes feedIn{from{transform:translateX(24px);opacity:0}}
+
+/* 中央：區域與升級 */
+#banner{left:50%;top:max(17%,150px);transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .7s;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+#banner.on{opacity:1}
+#banner em.bk8{display:block;margin-bottom:2px;font-style:normal;font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.5em;margin-right:-.5em;color:var(--brass-light)} #banner em.bk8[hidden],#banner small.bd8[hidden]{display:none}
+#banner small.bd8{display:block;max-width:520px;margin:9px auto 0;font-size:13.5px;line-height:1.6;letter-spacing:.06em;color:#e2dac6;text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.9)}
+#banner.n8,#banner.a8{padding:14px 64px 12px;background:radial-gradient(closest-side,rgba(12,14,10,.72),rgba(12,14,10,.5) 62%,transparent)} #banner.n8 b{color:#e8f1f8;text-shadow:0 2px 12px rgba(0,0,0,.8),0 0 18px rgba(150,190,230,.35)} #banner.n8 em.bk8{color:#b9d6ee} #banner.lo8 span{color:#ffb08a}      /* 0.8 X7：區域名牌（新地、北境、等級不夠） */
+#banner b{display:block;font-family:var(--font-display);font-weight:900;font-size:42px;letter-spacing:.22em;margin-right:-.22em}
+#banner span{display:block;margin-top:2px;font-size:14px;letter-spacing:.2em;color:var(--ink);text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.9)}
+#banner::after{content:"";display:block;width:260px;height:1px;margin:8px auto 0;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+#lvup{left:50%;top:27%;transform:translateX(-50%);text-align:center;opacity:0;pointer-events:none}
+#lvup.on{animation:lvup 3s ease-out}
+@keyframes lvup{0%{opacity:0;transform:translateX(-50%) scale(.6)}10%{opacity:1;transform:translateX(-50%) scale(1.08)}18%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+#lvup b{display:block;font-family:var(--font-display);font-weight:900;font-size:50px;letter-spacing:.16em;color:#ffe2a0;text-shadow:0 0 22px rgba(255,180,60,.9),0 3px 0 rgba(0,0,0,.6)}
+#lvup span{display:block;font-size:15px;letter-spacing:.14em;text-shadow:0 1px 4px #000}
+#vignette{inset:0;box-shadow:inset 0 0 110px 16px rgba(200,30,20,.42);opacity:0;transition:opacity .5s}
+#vignette.on{opacity:1;transition:none}
+#lowhp{inset:0;box-shadow:inset 0 0 160px 30px rgba(170,20,14,.5);opacity:0;transition:opacity .4s}
+#dead{inset:0;display:grid;place-items:center;background:radial-gradient(circle,rgba(40,6,4,.35),rgba(10,2,2,.82));opacity:0;transition:opacity .6s}
+#dead.on{opacity:1}
+#dead div{text-align:center}
+#dead b{display:block;font-family:var(--font-display);font-weight:900;font-size:54px;letter-spacing:.3em;color:#e9c9bf}
+#dead span{display:block;margin-top:10px;color:var(--ink-dim)}
+
+/* ---------- 視窗 ---------- */
+.win{position:fixed;z-index:20;background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 14px 44px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.5);backdrop-filter:blur(6px);display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.win header{display:flex;align-items:center;gap:10px;padding:11px 14px 9px;border-bottom:1px solid var(--line)}
+.win header h2{margin:0;font-family:var(--font-display);font-size:17px;letter-spacing:.12em;flex:1}
+.win header .x{width:26px;height:26px;padding:0;line-height:1;font-size:15px}
+.win .body{overflow:auto;padding:12px 14px 14px}
+/* 0.6a（w6-fix）：內容超出時看得出有捲軸（角色面板在 1222×789 要捲才看得完）；Chrome／Edge／Safari 用 ::-webkit-scrollbar（一直顯示），Firefox 用 scrollbar-color */
+.win .body::-webkit-scrollbar,.win .c6list::-webkit-scrollbar,.win .c6info::-webkit-scrollbar{width:8px;height:8px} .win .body::-webkit-scrollbar-track,.win .c6list::-webkit-scrollbar-track,.win .c6info::-webkit-scrollbar-track{background:rgba(0,0,0,.28);border-radius:4px}
+.win .body::-webkit-scrollbar-thumb,.win .c6list::-webkit-scrollbar-thumb,.win .c6info::-webkit-scrollbar-thumb{background:var(--brass-dark);border-radius:4px;border:1px solid rgba(0,0,0,.35)} .win .body::-webkit-scrollbar-thumb:hover,.win .c6list::-webkit-scrollbar-thumb:hover,.win .c6info::-webkit-scrollbar-thumb:hover{background:var(--brass)}
+@supports not selector(::-webkit-scrollbar){.win .body,.win .c6list,.win .c6info{scrollbar-width:thin;scrollbar-color:var(--brass-dark) rgba(0,0,0,.28)}}
+.win h3{margin:14px 0 6px;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-dim)}
+.win h3:first-child{margin-top:0}
+
+#winChar{left:20px;top:calc(var(--plateB,150px) + 8px);width:404px;max-height:calc(100vh - var(--plateB,150px) - 24px)}      /* 0.7（d7-ui-t）：不壓左上角狀態；內容長，.body 自己捲動 */
+#charHead{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--ink-dim)}
+#charHead b{color:var(--ink);font-family:var(--font-display);font-size:16px}
+#ptsLine{display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px;padding:6px 10px;border-radius:5px;background:rgba(0,0,0,.3);font-size:13px}
+#ptsLine b{font-size:19px;font-family:var(--font-display);color:var(--ember);font-variant-numeric:tabular-nums}
+.stat{display:grid;grid-template-columns:46px 62px 1fr auto;gap:2px 8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.stat .nm{font-family:var(--font-display);font-size:15px}
+.stat .val{font-variant-numeric:tabular-nums;font-size:15px;font-weight:700} .stat .val i{font-style:normal;color:var(--ok);font-size:12.5px;margin-left:3px}
+.stat .eff{font-size:12px;color:var(--ink-dim)}
+.stat .btns{display:flex;gap:4px} .stat .btns button{width:26px;height:26px;padding:0;font-size:16px;line-height:1}
+.stat .note{grid-column:1/-1;font-size:11.5px;color:var(--ink-faint)}
+.stat .note.bad{color:var(--warn)}
+#derived{display:grid;grid-template-columns:1fr 1fr;gap:3px 18px;font-size:12.5px}
+#derived div{display:flex;justify-content:space-between;gap:8px} #derived dt{color:var(--ink-dim)} #derived dd{margin:0;font-variant-numeric:tabular-nums} #derived dd i{font-style:normal;color:var(--ok)} #derived dd i.dn{color:var(--bad)}
+.win .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.hrow{display:grid;grid-template-columns:1fr 60px 108px;gap:0 10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:12.5px} .hrow b{font-family:var(--font-display);font-size:14px;font-weight:700;white-space:nowrap} .hrow b.el{color:#ffb86b}
+.hrow span{text-align:right;font-variant-numeric:tabular-nums} .hrow small{font-size:11.5px;color:var(--ink-faint)} .hrow small.ok{color:var(--ok)} .hrow.new span{color:var(--ink-faint)}
+
+#winShop{left:max(16px,calc(50vw - 557px));top:50%;transform:translateY(-50%);width:420px}      /* 靠左（對話時選項欄的位置）：買賣時不擋住站在右邊的米洛 */
+
+.srow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.srow .ic{width:38px;height:38px}
+.srow .txt{flex:1;min-width:0} .srow .txt b{display:block;font-weight:500} .srow .txt small{display:block;font-size:11.5px;color:var(--ink-dim)}
+.srow button{flex:none;font-size:12.5px;white-space:nowrap}
+#winShop .empty{margin:6px 0 0;font-size:12.5px;color:var(--ink-dim)}
+#winBag{right:20px;top:50%;transform:translateY(-50%);width:336px}
+#winSkill{left:50%;top:50%;transform:translate(-50%,-50%);width:560px}
+.skrow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.skrow .ic{width:42px;height:42px} .skrow.rare .ic.sk{box-shadow:inset 0 -3px 5px rgba(0,0,0,.3),0 0 0 2px var(--brass-light),0 0 10px rgba(240,215,154,.5)}
+.skrow .txt{flex:1;min-width:0} .skrow .txt b{display:block;font-family:var(--font-display);font-size:15px} .skrow .txt b i{font:400 11.5px var(--font-body);color:var(--ink-dim);margin-left:10px} .skrow .txt small{display:block;font-size:12px;color:var(--ink-dim);line-height:1.5}
+.skrow>button{flex:none;font-size:12.5px;white-space:nowrap;align-self:center} .slotseg{flex:none;display:flex;gap:4px;align-self:center} .slotseg button{min-width:30px;padding:3px 6px;font-size:12px} .slotseg button.on{border-color:var(--ember);color:#241a0c;background:var(--ember);font-weight:700}
+.reqline{margin-top:3px;font-size:12px;color:var(--ink-dim)} .reqline .ok{color:var(--ok)} .reqline .no{color:var(--warn)}
+#winSkill .empty{margin:4px 0 0;font-size:12.5px;color:var(--ink-dim)}
+/* 技能欄（目前裝的四個）：固定在清單上方，往下捲也看得到 */
+#skBar{position:sticky;top:-12px;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 -14px 12px;padding:10px 14px 9px;background:var(--panel-solid);border-bottom:1px solid var(--line)}
+#skBar small{grid-column:1/-1;margin-bottom:5px;font-size:11.5px;color:var(--ink-dim)} #skBar .sb{position:relative;display:flex;align-items:center;gap:6px;min-width:0;height:44px;padding:0 20px 0 9px;border-color:rgba(201,163,90,.55);background:rgba(0,0,0,.3);text-align:left} #skBar .sb kbd{position:absolute;left:-4px;top:-7px}
+#skBar .sb .ic{width:30px;height:30px} #skBar .sb span:not(.ic){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-display);font-size:13.5px} #skBar .sb i{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--ink-faint)} #skBar .sb:hover i{color:var(--bad)}
+#skBar .sb.empty{border-style:dashed;border-color:var(--line-strong);opacity:1;color:var(--ink-faint);justify-content:center;padding:0} #skBar .sb.empty span{flex:none;font-family:var(--font-body);font-size:12px}
+.skrow.eq{margin:0 -8px;padding-left:8px;padding-right:8px;background:linear-gradient(90deg,rgba(201,163,90,.14),rgba(201,163,90,.03));box-shadow:inset 2px 0 0 var(--brass)}
+#skTabs{margin-bottom:12px} #skTabs button{padding:4px 0;font-size:13px}
+.skrow .txt b em.wp{font:500 11px/15px var(--font-body);font-style:normal;margin-left:8px;padding:0 5px;border:1px solid var(--line-strong);border-radius:3px;color:var(--ink-dim);white-space:nowrap} .skrow .txt b em.wp.no{border-color:var(--warn);color:var(--warn)}
+.skrow.unfit .ic{filter:grayscale(.8) brightness(.7)} .skrow .lvreq{flex:none;align-self:center;font-size:12px;color:var(--brass-light);white-space:nowrap}
+#skMoveHead{margin:0 0 8px}
+.mvrow{display:grid;grid-template-columns:132px 132px 1fr;gap:4px 10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)} .mvrow .keys{white-space:nowrap;font-size:12px;color:var(--ink-dim)} .mvrow .keys kbd{margin:0 1px} .mvrow b{font-family:var(--font-display);font-size:15px;line-height:1.35} .mvrow b.sm{font-size:13.5px} .mvrow small{font-size:12px;color:var(--ink-dim);line-height:1.45} #skGiftWrap{margin-bottom:12px;padding:10px 12px 4px;border:1px solid var(--brass-dark);border-radius:6px;background:rgba(201,163,90,.08)} #skGiftWrap h3{color:var(--brass-light)}
+#skGuide{margin:0;padding-left:0;list-style:none;font-size:12.5px;line-height:1.65;color:var(--ink-dim)} #skGuide li{margin-bottom:4px} #skGuide b{color:var(--ink)}
+#itemInfo .reqline{margin-top:6px}
+.goldline{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px} .goldline b{color:var(--warn);font-variant-numeric:tabular-nums}
+#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cell{position:relative;aspect-ratio:1;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.32);display:grid;place-items:center;padding:0;font-family:var(--font-display);font-size:19px}
+.cell.sel{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember)}
+.cell .ic{width:86%;height:86%;background:none;box-shadow:none}
+.cell em{position:absolute;right:3px;bottom:0;font:700 11px var(--font-body);font-style:normal;text-shadow:0 1px 2px #000}
+#itemInfo{margin-top:12px;min-height:74px;padding:9px 11px;border-radius:5px;background:rgba(0,0,0,.3);font-size:12.5px;color:var(--ink-dim)}
+#itemInfo b{display:block;color:var(--ink);font-family:var(--font-display);font-size:15px;margin-bottom:2px}
+#itemInfo button{margin-top:8px}
+
+#winMap{left:max(336px,calc(50% - min(350px,50vh - 75px,47vw)));top:50%;transform:translateY(-50%);width:min(700px,calc(100vh - 150px),94vw)}      /* 0.7（d7-ui）：左緣至少在追蹤欄右邊（336px），1222×789 不壓左上角狀態；寬螢幕仍置中 */      /* 高度不夠時地圖跟著縮，整張地圖與圖例不用捲動就看得到 */
+#bigMap{width:100%;aspect-ratio:1;border-radius:4px;background:#12140f;display:block}
+#winMap .body{position:relative} #mapTip{position:absolute;z-index:2;max-width:250px;padding:6px 10px 7px;border-radius:6px;border:1px solid var(--brass-dark);background:rgba(18,20,16,.95);box-shadow:0 6px 16px rgba(0,0,0,.5);font-size:12px;line-height:1.55;color:var(--ink-dim);pointer-events:none} #mapTip b{font-family:var(--font-display);font-size:14px;color:var(--ink);margin-right:6px} #mapTip i{font-style:normal;font-size:10.5px;font-weight:700;padding:0 5px;border-radius:3px;background:#ff9a3c;color:#241a0c} #mapTip span{display:block;margin-top:1px}
+#mapZoom8{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2} #mapZoom8 button{min-width:30px;height:26px;padding:0 9px;font-size:12.5px;line-height:24px;border-radius:4px;background:rgba(18,20,16,.86);border:1px solid var(--brass-dark);color:var(--ink)} #mapZoom8 button.on{border-color:var(--brass);color:var(--brass-light)} #mapZoom8 button:hover{border-color:var(--brass)} #bigMap{cursor:grab;touch-action:none}      /* 0.8 X7：大地圖縮放鈕 */
+#mapLegend i.lm8{width:8px;height:10px;border-radius:0;background:#d9cfb8;clip-path:polygon(0 100%,15% 25%,50% 0,85% 25%,100% 100%);box-shadow:none} #mapLegend i.fish8{width:12px;height:8px;border-radius:0;background:#9fd3ef;clip-path:polygon(0 50%,25% 0,62% 10%,100% 0,85% 50%,100% 100%,62% 90%,25% 100%)}
+#mapLegend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:9px;font-size:12px;color:var(--ink-dim)}
+#mapLegend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:baseline} #mapLegend i.fire{width:9px;height:11px;background:#ff9a3c;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;box-shadow:inset 0 -3px 0 #ffe08a}
+
+#winSet{left:50%;top:50%;transform:translate(-50%,-50%);width:470px}
+.seg{display:flex;gap:6px} .seg button{flex:1} .seg button.on{border-color:var(--ember);color:var(--ember);background:rgba(242,162,74,.12)}
+#keyList{display:grid;grid-template-columns:1fr auto 1fr auto;gap:5px 10px;font-size:12.5px;align-items:center} #keyList span{color:var(--ink-dim)} #keyList button{min-width:74px;padding:3px 8px;font-size:12px} #keyList button.wait{border-color:var(--ember);color:var(--ember)}
+.win .hint{margin:6px 0 8px;font-size:12px;line-height:1.6;color:var(--ink-dim)}
+.win header{cursor:move;user-select:none} .win header button{cursor:pointer}
+/* ---------- 圖示（ui.js 的 iconSvg） ---------- */
+.ic{display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:6px;background:radial-gradient(circle at 50% 35%,#3a3d33,#1c1f19 75%);box-shadow:inset 0 0 0 1px var(--line)} .ic svg,.slot svg{width:100%;height:100%;display:block}
+.ic.sk{border-radius:50%;box-shadow:inset 0 -3px 5px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.5)} .ic.bare{background:none;box-shadow:none}
+.slot .ai{width:38px;height:38px} #healGlyph{width:38px;height:38px}
+#feed p{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:1px 3px} #feed .ic{width:20px;height:20px}
+
+/* ---------- 任務：追蹤欄、評級徽章、日誌 ---------- */
+.tag-mark{display:none;font-family:var(--font-display);font-weight:900;font-size:25px;line-height:1.05;text-shadow:0 2px 0 rgba(0,0,0,.75),0 0 9px rgba(0,0,0,.8);animation:markBob 1.3s ease-in-out infinite}
+.tag-mark.offer,.tag-mark.hidden{display:block;color:#ffd76a} .tag-mark.turnin{display:block;color:#8fe38a} .tag-mark.talk{display:block;color:#bfe3ff}
+@keyframes markBob{50%{transform:translateY(-4px)}}
+.tag.noname .tag-name{display:none}
+.rb{display:inline-block;flex:none;padding:0 6px;border-radius:3px;font:700 11px/17px var(--font-body);font-style:normal;letter-spacing:.08em;text-shadow:none;white-space:nowrap}
+.qt{display:inline-block;flex:none;padding:0 5px;border:1px solid var(--line-strong);border-radius:3px;font:500 11px/15px var(--font-body);font-style:normal;color:var(--ink-dim);white-space:nowrap} .qt.main{border-color:var(--brass);color:var(--brass-light)} .qt.hidden{border-color:#a58bd6;color:#cdb8f2}
+#tracker{top:150px;left:16px;width:306px;display:flex;flex-direction:column;gap:6px} #tracker[hidden]{display:none}
+.tq{padding:5px 10px 6px;border-left:2px solid var(--brass);border-radius:0 5px 5px 0;background:linear-gradient(90deg,rgba(20,22,18,.88),rgba(20,22,18,.5));text-shadow:0 1px 2px #000}
+.tq b{display:flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:14.5px;font-weight:700}
+.tq span{display:block;position:relative;padding-left:15px;font-size:12px;line-height:1.5;color:var(--ink)} .tq span small{font-size:11px;color:var(--ink-faint);margin-left:6px;white-space:nowrap}
+.tq span::before{content:"";position:absolute;left:2px;top:5px;width:7px;height:7px;border:1px solid var(--ink-faint);border-radius:2px}
+.tq span.ok{color:var(--ink-faint)} .tq span.ok::before{background:var(--ok);border-color:var(--ok)}
+.tq em{display:block;font-style:normal;font-size:12px;line-height:1.5;color:var(--ink-dim)} .tq.ready{border-left-color:var(--ok)} .tq.ready em{color:var(--ok)}
+.tq.new{border-left-color:#ffd76a} .tq.new b{font-family:var(--font-body);font-size:10.5px;letter-spacing:.2em;color:#ffd76a} .tq.new em:first-of-type{font-family:var(--font-display);font-size:14.5px;color:var(--ink)}
+#winQuest{left:50%;top:max(calc(var(--plateB,150px) + 8px),calc(50vh - 300px));transform:translateX(-50%);width:min(800px,calc(100vw - 464px),94vw);max-height:calc(100vh - var(--plateB,150px) - 24px)}      /* 0.7（d7-ui）：1222×789 不壓左上角狀態與右上懷錶（左右各讓 232px、上緣在狀態底下） */
+.qWrap{display:flex;min-height:0;flex:1}
+.qSide{flex:none;width:270px;display:flex;flex-direction:column;min-height:0;padding:12px 0 10px 12px;border-right:1px solid var(--line)}
+#qTabs{margin-right:12px} #qTabs button{padding:4px 0;font-size:12.5px;white-space:nowrap}
+#qList{margin-top:9px;padding-right:8px;overflow:auto;height:min(54vh,440px)}
+.qi{display:grid;grid-template-columns:auto 1fr;gap:0 9px;align-items:center;width:100%;text-align:left;padding:6px 8px;margin-bottom:3px;border:0;border-left:2px solid transparent;border-radius:0 4px 4px 0;background:none}
+.qi:hover{background:rgba(244,236,217,.06)} .qi.on{border-left-color:var(--ember);background:rgba(242,162,74,.1)}
+.qi .rb{grid-row:1/3} .qi .nm{font-family:var(--font-display);font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .qi small{font-size:11.5px;color:var(--ink-dim)} .qi.ready small{color:var(--ok)}
+#winQuest .empty{margin:8px 4px;font-size:12.5px;line-height:1.7;color:var(--ink-dim)}
+#qDetail{flex:1;min-width:0;height:min(60vh,490px)} #qDetail h4{margin:0 0 7px;font-family:var(--font-display);font-size:21px;letter-spacing:.06em}
+.qmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--ink-dim)} .qmeta .low{color:var(--warn)}
+.qrate{margin:6px 0 0;font-size:12px;color:var(--ink-faint)} .qdesc{margin:10px 0 0;font-size:13.5px;line-height:1.75} .qgiver{margin:8px 0 0;font-size:12.5px;color:var(--ink-dim)} .qnote{margin:8px 0 0;font-size:12.5px;color:var(--ok)} .qnote.dim{color:var(--ink-dim)}
+.qsh{margin-top:14px} .qsay{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--brass);background:rgba(255,255,255,.04);border-radius:0 6px 6px 0} .qsay b{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:4px;font-weight:600} .qsay p{margin:0 0 4px;font-size:13.5px;line-height:1.75} .qmid .qsay{border-left-color:var(--ink-faint)} .qrec{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);opacity:.75;font-size:12px} .qrec h3{font-size:12px}
+.qobj{list-style:none;margin:0;padding:0} .qobj li{display:flex;gap:9px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.qobj li i{flex:none;width:16px;height:16px;border:1px solid var(--line-strong);border-radius:3px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700}
+.qobj li.hint{display:block;padding-left:25px;border-bottom:0;font-size:11.5px;color:var(--ink-faint)} .qobj li.ok i{background:var(--ok);border-color:var(--ok);color:#12240f} .qobj li.ok span{color:var(--ink-dim)} .qobj li span{flex:1;min-width:0} .qobj li small{display:block;font-size:11.5px;color:var(--ink-faint)} .qobj li em{flex:none;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink-dim)}
+.qrew{display:flex;flex-wrap:wrap;gap:5px 16px;align-items:center;font-size:13px} .qrew span{display:inline-flex;align-items:center;gap:5px} .qrew .ic{width:24px;height:24px}
+.qkeys{margin:10px 0 0;font-size:12.5px;color:var(--ink-dim)} .qkeys kbd{margin:0 2px}
+#qTrack{margin-top:12px} #qTrack.on{border-color:var(--ember);color:var(--ember);background:rgba(242,162,74,.12)}
+.qFoot{padding:8px 14px 10px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.7;color:var(--ink-dim)} .qFoot b{font-family:var(--font-display);font-size:14px;margin:0 2px 0 8px} .qFoot b:first-child{margin-left:0} .qFoot .m1{color:#ffd76a} .qFoot .m2{color:#8fe38a} .qFoot .m3{color:#bfe3ff}
+
+/* ---------- NPC 對話、旁白 ---------- */
+/* 對話版面：下方一條對白（兩行），左邊一欄放選項、任務卡、回報結果，兩者底部對齊；對方由對話鏡頭（main.js）取景在對白條正上方，介面不蓋到他 */
+#dialog{position:fixed;inset:0;z-index:18;display:flex;align-items:flex-end;justify-content:center;gap:14px;padding:128px 16px 20px;pointer-events:none} #dialog[hidden]{display:none}
+#dialog::before{content:"";position:absolute;left:0;right:0;bottom:0;height:150px;z-index:-1;background:linear-gradient(transparent,rgba(8,9,7,.5))}
+#dlgSide{flex:0 0 340px;align-self:stretch;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
+#dlgBox{pointer-events:auto;position:relative;flex:0 1 760px;min-width:0;padding:20px 22px 8px;border:1px solid var(--brass-dark);border-radius:8px;background:rgba(18,20,16,.9);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.5);cursor:pointer}
+#dlgWho{position:absolute;left:18px;top:-16px;display:flex;align-items:baseline;gap:9px;padding:2px 14px 3px;border:1px solid var(--brass);border-radius:5px;background:#231d12}
+#dlgWho b{font-family:var(--font-display);font-size:17px;letter-spacing:.1em;color:var(--brass-light)} #dlgWho span{font-size:12px;color:var(--ink-dim)}
+#dlgText{margin:2px 0 0;min-height:60px;font-family:var(--font-display);font-size:18px;line-height:1.65;animation:dlgIn .22s ease-out} #dlgText.note{font-family:var(--font-body);font-size:14.5px;color:var(--ink-dim)}
+@keyframes dlgIn{from{opacity:0;transform:translateY(3px)}}
+#dlgNext{margin-top:4px;min-height:17px;text-align:right;font-size:11.5px;color:var(--ink-faint)}
+#dlgCard{pointer-events:auto;flex:0 1 auto;min-height:0;overflow:auto;padding:11px 14px 12px;border:1px solid var(--brass-dark);border-radius:8px;background:rgba(18,20,16,.9);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.5);animation:dlgIn .22s ease-out} #dlgCard[hidden]{display:none}
+#dlgCard .qmeta{font-size:11.5px} #dlgCard h4{margin:5px 0 4px;font-family:var(--font-display);font-size:18px;letter-spacing:.04em}
+#dlgCard .dcDesc{margin:0 0 7px;font-size:12.5px;line-height:1.6;color:var(--ink-dim)} #dlgCard .dcDone{font-size:10.5px;font-weight:700;letter-spacing:.2em;color:var(--ok)}
+#dlgCard .qobj{border-top:1px solid var(--line)} #dlgCard .qobj li{padding:4px 0;font-size:12.5px}
+#dlgCard .qkeys{margin:7px 0 0;font-size:12px;line-height:1.9} #dlgCard .qrew{margin-top:8px;font-size:12.5px;gap:4px 14px} #dlgCard .qobj+.qrew,#dlgCard .qkeys+.qrew{padding-top:8px;border-top:1px solid var(--line)} #dlgCard .qobj+.qrew{margin-top:0;border-top:0}
+#dlgOpts{pointer-events:auto;flex:none;display:flex;flex-direction:column;gap:5px} #dlgOpts:empty{display:none}
+#dlgOpts button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 12px 6px 8px;text-align:left;font-size:13.5px;border-color:var(--line-strong);background:rgba(18,20,16,.88);box-shadow:0 3px 10px rgba(0,0,0,.35)} #dlgOpts button:hover{background:rgba(52,49,38,.96)}
+#dlgOpts button span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dlgOpts button.q{border-color:var(--brass-dark);border-left:3px solid var(--brass);padding-left:6px;color:var(--brass-light)} #dlgOpts button.go:not(:only-child){border-left:3px solid var(--ok);padding-left:6px} #dlgOpts button.go{border-color:var(--ok);color:var(--ok)} #dlgOpts button.quiet{color:var(--ink-dim)}
+#dlgOpts.row{flex-direction:row;gap:7px} #dlgOpts.row button{flex:1;justify-content:center} #dlgOpts.row button span{flex:none}
+@media (max-width:980px){#dlgSide{flex-basis:290px} #dialog{gap:10px;padding-left:10px;padding-right:10px}}
+body.talking #watch,body.talking #watch *,body.talking #bottom,body.talking #chat,body.talking #menu,body.talking #feed,body.talking #tracker,body.talking #cross,body.talking #prompt,body.talking #tip,body.talking #toast,body.talking #banner,body.talking #narr,body.talking #lvup{opacity:0!important;pointer-events:none}
+#narr{left:50%;top:max(17%,150px);transform:translateX(-50%);width:min(680px,calc(100vw - 664px));padding:10px 24px;text-align:center;font-family:var(--font-display);font-size:17.5px;line-height:1.7;letter-spacing:.06em;text-shadow:0 1px 3px #000,0 0 12px rgba(0,0,0,.95);background:radial-gradient(ellipse at center,rgba(8,9,7,.66),transparent 72%);opacity:0;transition:opacity .7s} #narr.on{opacity:1}
+#cross{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 0 1.5px rgba(0,0,0,.45);opacity:0;transition:opacity .15s;pointer-events:none;z-index:6}
+body.tps.playing #cross{opacity:.8} body.tps.locking #cross{opacity:0}
+#cross.aim{width:8px;height:8px;margin:-4px 0 0 -4px;background:rgba(255,236,170,.95)} #cross.aim::after{content:"";position:absolute;left:50%;top:50%;width:calc(22px + 46px * var(--k,0.4));height:calc(22px + 46px * var(--k,0.4));transform:translate(-50%,-50%);border:2px solid rgba(255,236,170,.9);border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.35)}
+/* 鎖定標記改由特效畫（fx.js 的 fxLock：目標腳下的環、頭上的箭頭），名牌也會變金色；介面這層不再疊一個框在牠身上。#lockMark 只留一個跟著目標的空定位點（ui.js 仍會更新它的位置與顯示） */
+#lockMark{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none}
+body.talking #lockMark{display:none!important}
+.tag.locked .tag-name{color:#ffd27a;font-weight:700} .tag.locked .tag-name::before{content:"◆ "} .tag.locked .tag-bar{width:96px;height:6px;box-shadow:0 0 0 1px #ffd27a}
+#moveName{left:50%;bottom:170px;transform:translateX(-50%);font-family:var(--font-display);font-weight:900;font-size:19px;letter-spacing:.3em;margin-right:-.3em;color:#ffe7a8;text-shadow:0 2px 0 rgba(0,0,0,.7),0 0 12px rgba(255,160,50,.7);opacity:0;pointer-events:none;white-space:nowrap}
+#moveName.on{animation:moveIn 1.1s ease-out}
+@keyframes moveIn{0%{opacity:0;transform:translateX(-50%) scale(1.5)}12%{opacity:1;transform:translateX(-50%) scale(1)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}
+body.talking #moveName{opacity:0!important}
+#keyCap{position:fixed;inset:0;z-index:60;background:rgba(8,9,7,.72);display:flex;align-items:center;justify-content:center} #keyCap[hidden]{display:none} #keyCap div{padding:22px 34px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);text-align:center} #keyCap b{display:block;font-family:var(--font-display);font-size:20px;letter-spacing:.1em;margin-bottom:8px} #keyCap span{color:var(--ink-dim);font-size:13px}
+.rowline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px}
+input[type=range]{accent-color:var(--ember);width:180px}
+#volGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px}
+#volGrid label{display:flex;align-items:center;gap:8px;min-width:0} #volGrid span{flex:0 0 3.2em;white-space:nowrap} #volGrid input{flex:1;min-width:0;width:auto} #volGrid b{flex:0 0 2em;text-align:right;font-weight:400;font-size:12px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+#keyReset{flex:none;white-space:nowrap}
+#audioCredits{font-size:11.5px;line-height:1.6;color:var(--ink-dim);user-select:text;-webkit-user-select:text;overflow-wrap:anywhere}
+#audioCredits p{margin:0 0 7px} #audioCredits b{color:var(--ink);font-weight:700} #audioCredits i{font-style:normal;margin-left:8px;padding:0 6px;border:1px solid var(--line-strong);border-radius:9px;font-size:10.5px;white-space:nowrap;color:var(--ink)}
+
+#diag{position:fixed;z-index:15;left:16px;top:196px;width:290px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font-size:12px}
+#diag h2{margin:0 0 6px;font-size:11.5px;letter-spacing:.14em;color:var(--ink-dim)}
+#diag dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px} #diag dt{color:var(--ink-dim);white-space:nowrap} #diag dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#diag button{margin-top:8px}
+
+/* ---------- 捏角色 ---------- */
+#creator{position:fixed;z-index:30;right:3vw;top:50%;transform:translateY(-50%);width:560px;max-height:calc(100vh - 60px)}
+.crWrap{display:flex;min-height:0;flex:1}
+#crTabs{flex:none;width:128px;display:flex;flex-direction:column;gap:2px;padding:10px 0 10px 10px;overflow:auto}
+#crTabs button{text-align:left;border:0;border-left:2px solid transparent;border-radius:0;background:none;padding:6px 10px;color:var(--ink-dim)}
+#crTabs button:hover{color:var(--ink);background:rgba(244,236,217,.06)}
+#crTabs button.on{color:var(--ember);border-left-color:var(--ember);background:rgba(242,162,74,.1)}
+#crBody{flex:1;min-width:0;height:min(58vh,560px);overflow:auto;border-left:1px solid var(--line)}
+.sl{display:grid;grid-template-columns:118px 1fr 34px;align-items:center;gap:10px;padding:4px 0;font-size:13px}
+.sl input{width:100%}.sl output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-dim);font-size:12px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button.on{border-color:var(--ember);color:var(--ember);background:rgba(242,162,74,.12)}
+.sw{display:flex;flex-wrap:wrap;gap:7px}
+.sw button{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid rgba(0,0,0,.55)} .sw button.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ember)}
+#crBody .hint{margin:14px 0 0;font-size:12.5px;color:var(--ink-dim);line-height:1.7}
+.crActions{padding:10px 14px 12px;margin:0;border-top:1px solid var(--line)}
+#creatorHint{position:fixed;z-index:30;left:6vw;bottom:8vh;padding:4px 12px;border-radius:14px;background:rgba(12,13,10,.6);font-size:13px;color:var(--ink);text-shadow:0 1px 3px #000}
+#creatorTitle{position:fixed;z-index:30;left:6vw;top:9vh;text-shadow:0 2px 10px rgba(0,0,0,.8)}
+#creatorTitle b{display:block;font-family:var(--font-display);font-weight:900;font-size:36px;letter-spacing:.14em}
+#creatorTitle span{color:var(--ink-dim);letter-spacing:.1em}
+
+/* ---------- 開始畫面 ---------- */
+#start{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,rgba(30,34,24,.5),rgba(10,11,8,.94));transition:opacity .6s}
+#start.loading{background:#12140f}
+#start.out{opacity:0;pointer-events:none}
+#card{width:min(470px,92vw);text-align:center}
+#card .floor{font-size:12.5px;letter-spacing:.5em;margin-right:-.5em;color:var(--brass)}
+#card h1{margin:4px 0 2px;font-family:var(--font-display);font-weight:900;font-size:62px;letter-spacing:.2em;margin-right:-.2em;line-height:1.15;text-shadow:0 4px 22px rgba(0,0,0,.7)}
+#card .sub{color:var(--ink-dim);letter-spacing:.14em}
+#card .rule{width:240px;height:1px;margin:18px auto;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+#loadBar{height:5px;border-radius:3px;background:rgba(244,236,217,.12);overflow:hidden;margin:0 40px}
+#loadBar i{display:block;height:100%;width:100%;transform-origin:left center;transform:scaleX(0);background:linear-gradient(90deg,var(--brass-dark),var(--brass-light));transition:transform .25s}
+#loadText{margin-top:9px;font-size:12.5px;color:var(--ink-dim)}
+#entry p{margin:0 0 12px}
+#nameIn{width:240px;padding:9px 12px;border-radius:4px;border:1px solid var(--line-strong);background:rgba(0,0,0,.4);color:var(--ink);font:inherit;font-size:16px;text-align:center;user-select:text;-webkit-user-select:text}
+#entry .row{display:flex;gap:10px;justify-content:center;align-items:center}
+#entryMsg{min-height:20px;margin-top:9px;font-size:12.5px;color:var(--warn)}
+#pvTag{display:inline-block;margin:6px auto 0;padding:2px 10px;border:1px solid rgba(214,178,98,.7);border-radius:10px;font-size:12px;letter-spacing:.12em;color:#e6c780;background:rgba(214,178,98,.1)}
+#entryNote{margin-top:14px;font-size:12px;color:var(--ink-faint);line-height:1.7}
+#fatal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:#12140f;padding:30px;text-align:center}
+#fatal pre{max-width:680px;white-space:pre-wrap;text-align:left;font-size:12px;color:var(--ink-dim);user-select:text;-webkit-user-select:text}
+/* 小視窗：下排放不下「聊天、動作列、六顆選單」一整排——選單改成三欄兩列，聊天變窄；再小就把聊天移到動作列上方。上方中央的提示與系統訊息一律夾在角色狀態與羅盤之間 */
+@media (max-width:1400px){#chat{width:296px} #menu{display:grid;grid-template-columns:repeat(3,49px)}}
+@media (max-width:1180px){#feed{display:none} #chat{bottom:138px}}
+@media (max-height:700px){#chatLog{max-height:96px}}
+@media (prefers-reduced-motion:reduce){#lvup.on{animation-duration:.01s} #ptsBtn{animation:none}}
+
+/* ============================== 0.6：飽食與精力、增益、採集、營火休息、製作、整備、披肩 ============================== */
+/* HUD：生命、體力、魔力下面兩條細條（刻度在三成與七成），進入「吃飽／餓了／餓壞了」這類區間時把名稱寫在條的右邊；增益是小膠囊，底下一條細線是剩下的比例 */
+#needs6{display:flex;gap:10px;margin-top:6px;pointer-events:auto}
+#needs6 .n6{flex:1;display:flex;align-items:center;gap:4px;min-width:0;cursor:pointer}
+#needs6 .n6 .ic{width:15px;height:15px}
+#needs6 .n6 em{flex:none;font:700 10.5px/1 var(--font-body);font-style:normal;color:var(--ink-dim);text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.8);white-space:nowrap} #needs6 .n6 em:empty{display:none}
+.nbar{position:relative;flex:1;height:7px;background:rgba(0,0,0,.55);border:1px solid rgba(0,0,0,.7);box-shadow:0 0 0 1px var(--line);border-radius:3px;overflow:hidden}
+.nbar i{position:absolute;inset:0;transform-origin:left center;background:linear-gradient(#f2c66c,#c98a2e);transition:transform .2s linear}
+.nbar.en i{background:linear-gradient(#a8e2c8,#5ea58a)}
+.nbar u{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.7);box-shadow:1px 0 0 rgba(255,255,255,.2)} .nbar u:nth-of-type(1){left:30%} .nbar u:nth-of-type(2){left:70%}
+.n6.hi em{color:var(--ok)} .n6.hi .nbar{box-shadow:0 0 0 1px rgba(143,208,138,.5)}
+.n6.lo .nbar i,.c6need.lo .nbar i{background:linear-gradient(#f4a66c,#cf632d)} .n6.lo em{color:#f4a274}
+.n6.zero .nbar,.c6need.zero .nbar{box-shadow:0 0 0 1px var(--bad);animation:n6pulse 1.4s ease-in-out infinite} .n6.zero em{color:var(--bad)}
+@keyframes n6pulse{50%{box-shadow:0 0 0 1px var(--bad),0 0 7px rgba(226,114,95,.85)}}
+#buffs6{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px;pointer-events:auto} #buffs6:empty{display:none}
+#buffs6>span{position:relative;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px 0 2px;border-radius:11px;background:rgba(14,15,12,.74);border:1px solid var(--line-strong);font-size:11.5px;text-shadow:0 1px 2px #000;overflow:hidden}
+#buffs6 .ic{width:18px;height:18px;background:none;box-shadow:none} #buffs6 b{font-weight:500} #buffs6 em{font-style:normal;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+#buffs6 u{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ok);transform-origin:left center;opacity:.85}
+#buffs6>span.town u{background:var(--ink-faint)} #buffs6>span.town em{color:var(--ink-faint)} #buffs6>span.end u{background:var(--warn)} #buffs6>span.end em{color:var(--warn)}
+/* 採集：動作列正上方一個小條（採集時互動提示不顯示，佔它的位置；壓在角色腳邊，不蓋住身體），左邊是採的東西 */
+#gather6{left:50%;bottom:130px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;width:218px;padding:6px 14px 7px 7px;border-radius:8px;background:var(--panel);border:1px solid var(--line-strong);box-shadow:0 4px 12px rgba(0,0,0,.4);opacity:0;transition:opacity .12s}
+#gather6.on{opacity:1} #gather6>div{flex:1;min-width:0} #gather6 b{display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #gather6.walk b{color:var(--ink-dim)}
+#g6ic{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:6px;background:radial-gradient(circle at 50% 35%,#3a3d33,#1c1f19 75%);box-shadow:inset 0 0 0 1px var(--line)} #g6ic .ic{width:27px;height:27px}
+#gather6 .nbar{display:block;margin-top:4px;height:6px} #gather6 .nbar i{background:linear-gradient(#ffc680,var(--ember));transition:none}
+/* 營火休息：坐下時右下角（選單上方）的小面板，不擋住坐在畫面中央的角色；料理視窗開在左邊，兩個可以同時看到。料理按 1、起身按互動鍵 */
+#rest6{right:16px;bottom:122px;transform:translateY(8px);width:330px;padding:10px 14px 11px;border-radius:8px;border:1px solid var(--brass-dark);border-top:2px solid var(--brass);background:rgba(18,20,16,.9);box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;transition:opacity .2s,transform .2s}
+#rest6.on{opacity:1;transform:none;pointer-events:auto} #r6cook.on{background:rgba(201,163,90,.3)}
+#rest6 .r6h{display:flex;align-items:center;gap:9px} #rest6 .r6h .ic{width:32px;height:32px} #rest6 .r6h b{font-family:var(--font-display);font-size:16px;letter-spacing:.08em} #rest6 .r6h small{margin-left:auto;font-size:11.5px;color:var(--ink-dim)}
+#rest6 .r6bar{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--ink-dim)} #rest6 .r6bar .ic{width:16px;height:16px} #rest6 .r6bar .nbar{height:10px} #rest6 .r6bar em{min-width:62px;text-align:right;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink)}
+#r6rate{margin:6px 0 0;font-size:12.5px;font-weight:500;color:var(--ok)} #rest6.full #r6rate{color:var(--brass-light)} #r6tip{margin:1px 0 0;font-size:11.5px;color:var(--ink-dim)} #rest6.duo #r6tip{color:var(--ok)}
+#rest6 .r6btns{display:flex;gap:8px;margin-top:10px} #rest6 .r6btns button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:6px 10px;font-size:13.5px}
+#r6cook{border-color:var(--brass);color:var(--brass-light);background:rgba(201,163,90,.13)} #r6cook:hover{background:rgba(201,163,90,.24)!important}
+body.talking #needs6,body.talking #buffs6,body.talking #gather6,body.talking #rest6{opacity:0!important;pointer-events:none}
+
+/* ---------- 0.6 的視窗：標題列左邊一個圖示、右邊金幣；高度固定（換分頁、換選項時視窗不跳） ---------- */
+.win header .hic{flex:none;display:grid;place-items:center;width:28px;height:28px;margin:-3px -3px -3px -4px} .win header .hic .ic,.win header .hic>svg{width:28px;height:28px}
+.hgold{display:flex;align-items:center;gap:4px;margin-right:2px;font-size:13.5px;font-weight:700;color:var(--warn);font-variant-numeric:tabular-nums} .hgold .ic{width:18px;height:18px}
+/* 0.6a（w6-fix）：整備與料理視窗不壓到左上角的角色狀態與增益列。--plateB＝左上角狀態的底邊（index.html 頁尾的小程式量的）；視窗放在 [狀態底下 8px, 畫面底 16px] 的範圍裡置中。
+   畫面夠高時（例如 1080）上下留白一樣、位置和以前相同；不夠高時往下讓：料理視窗太長就在清單裡捲動，整備視窗最矮 500px（再矮就寧可壓到狀態，免得整備分頁被切掉） */
+#winCraft{left:max(16px,calc(50vw - 557px));width:526px;min-height:min(452px,calc(100vh - 40px));--t:max(calc(var(--plateB,150px) + 8px),calc(50vh - 280px));--b:clamp(16px,calc(100vh - var(--t) - 560px),var(--t));top:var(--t);bottom:var(--b);margin:auto 0;height:fit-content;max-height:calc(100vh - var(--t) - var(--b))}
+#winForge{left:max(16px,calc(50vw - 557px));width:590px;--t:max(calc(var(--plateB,150px) + 8px),calc(50vh - 278px));--b:clamp(16px,calc(100vh - var(--t) - 556px),var(--t));top:var(--t);bottom:var(--b);margin:auto 0;height:min(556px,calc(100vh - 40px),max(500px,calc(100vh - var(--t) - var(--b))))}
+#winCloak{left:max(16px,calc(50vw - 557px));top:50%;transform:translateY(-50%);width:526px}      /* 視窗在左邊，對話鏡頭把 NPC 擺在右邊：寬度不超過 526，才不會蓋到 NPC */
+#winCraft .body,#winForge .body{flex:1;min-height:0;display:flex;flex-direction:column}
+#winForge #forgeBody{flex:1;min-height:0;overflow:auto;padding-right:2px} #winForge #forgeBody[data-t=up]{overflow:hidden;display:flex;flex-direction:column}
+.c6note{flex:none;margin:0 0 10px;padding:6px 10px;border-radius:5px;background:rgba(0,0,0,.3);border-left:2px solid var(--brass-dark);font-size:12px;line-height:1.55;color:var(--ink-dim)} .c6note:empty{display:none}
+.c6wrap{flex:1;min-height:0;display:flex;gap:14px}
+.c6list{flex:none;width:198px;display:flex;flex-direction:column;gap:3px;overflow:auto;padding-right:3px}
+.c6r{flex:none;display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:3px 8px 3px 4px;border-color:transparent;background:rgba(0,0,0,.24)}
+.c6r .ic{width:32px;height:32px} .c6r>span:not(.ic){flex:1;min-width:0} .c6r b{display:block;font-weight:500;font-size:13.5px;line-height:1.3} .c6r small{display:block;font-size:11px;line-height:1.35;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c6r em{flex:none;font:700 11.5px var(--font-body);font-style:normal;font-variant-numeric:tabular-nums} .c6r em.ok{color:var(--ok)} .c6r em.no{font-weight:500;color:var(--ink-faint)}
+.c6r:hover:not(:disabled){background:rgba(244,236,217,.09)} .c6r.on{border-color:rgba(242,162,74,.75);background:rgba(242,162,74,.13);box-shadow:inset 3px 0 0 var(--ember)}
+.c6r.unk{background:none;border:1px dashed var(--line)} .c6r.unk .ic{filter:grayscale(.85) brightness(.62)} .c6r.unk b{color:var(--ink-dim)} .c6r.unk small{white-space:normal;color:var(--ink-faint)} .c6r.unk.on{border-style:solid}
+.c6sub{flex:none;margin:9px 0 3px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-faint)}
+.c6unk{flex:none;display:flex;flex-wrap:wrap;gap:4px;padding-left:2px} .c6u{width:38px;height:38px;padding:2px;border:1px dashed var(--line-strong);background:none} .c6u .ic{width:32px;height:32px;filter:grayscale(.85) brightness(.6)} .c6u.on{border:1px solid var(--ember);background:rgba(242,162,74,.12)} .c6u.on .ic,.c6u:hover .ic{filter:none}
+.c6info{flex:1;min-width:0;overflow:auto;padding-right:2px;font-size:13px}
+.c6head{display:flex;gap:11px;align-items:center;margin-bottom:7px} .c6head h4{margin:0;font-family:var(--font-display);font-size:18px;letter-spacing:.04em;line-height:1.3}
+.ic.big{width:50px;height:50px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line-strong),0 2px 6px rgba(0,0,0,.4)}
+.c6chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px} .c6chips i{font-style:normal;font-size:11.5px;line-height:17px;padding:0 7px;border-radius:9px;background:rgba(143,208,138,.12);border:1px solid rgba(143,208,138,.35);color:#cdeec9} .c6chips i.dim{background:rgba(244,236,217,.05);border-color:var(--line);color:var(--ink-dim)}
+.c6desc{margin:0 0 4px;font-size:12px;line-height:1.6;color:var(--ink-dim)} .c6warn{margin:2px 0 0;font-size:12px;color:var(--warn)}
+.c6sec{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:11px 0 5px;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:var(--ink-dim)} .c6sec small{font-size:11px;font-weight:400;letter-spacing:0;color:var(--ink-faint)}
+.c6tiles{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.c6t{display:flex;align-items:center;gap:7px;min-width:0;padding:4px 8px 4px 4px;border-radius:6px;border:1px solid var(--line);background:rgba(0,0,0,.28)}
+.c6t .ic{width:30px;height:30px} .c6t>span:not(.ic){flex:1;min-width:0}
+.c6t b{display:flex;align-items:baseline;gap:4px;font-weight:500;font-size:12.5px;line-height:1.35} .c6t b .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .c6t b em{flex:none;font-style:normal;font-weight:700;font-variant-numeric:tabular-nums} .c6t b s{flex:none;font-size:11px;color:var(--ink-faint)}
+.c6t small{display:block;font-size:11px;line-height:1.35;color:var(--ok);font-variant-numeric:tabular-nums;white-space:nowrap}
+.c6t.no{border-color:rgba(226,114,95,.55);background:rgba(120,30,20,.2)} .c6t.no small{color:var(--bad)}
+.c6t.half{box-shadow:inset 3px 0 0 var(--brass)} .c6t.half b em{color:var(--brass-light)} .c6t.tro.ok small{color:var(--brass-light)}
+.c6qty{display:flex;align-items:center;gap:6px;margin:10px 0 0} .c6qty button{width:30px;height:28px;padding:0;font-size:15px} .c6qty button.mx{width:auto;padding:0 9px;font-size:12px} .c6qty b{min-width:26px;text-align:center;font:700 16px var(--font-display);font-variant-numeric:tabular-nums} .c6qty small{margin-left:auto;font-size:11.5px;color:var(--ink-dim)}
+.c6go{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:10px}
+.c6go button.primary{position:relative;overflow:hidden;display:flex;align-items:baseline;justify-content:center;gap:8px;min-width:150px} .c6go button.primary small{font-size:11.5px;font-weight:500;opacity:.7}
+.c6go button.primary>i{position:absolute;left:0;bottom:0;width:100%;height:4px;background:#fff3d6;transform-origin:left center;transform:scaleX(0)}
+#craftGo.busy{opacity:1;background:#4a3a22;border-color:var(--ember);color:#ffe7c0} #craftGo.busy>i{height:100%;background:rgba(242,162,74,.5)} #craftGo>span,#craftGo>small{position:relative;z-index:1}
+.c6tiles.w3{grid-template-columns:repeat(3,minmax(0,1fr))} .c6tiles.w3 .c6t{padding-right:5px} .c6tiles.w3 .c6t .ic{width:26px;height:26px}
+.c6go .why{font-size:12px;color:var(--bad)} .c6go .fee{font-size:12px;color:var(--ink-dim)} .c6go button.eat{margin-left:auto;font-size:12.5px}
+.c6learn{display:flex;gap:8px;align-items:center;margin:10px 0 0;padding:8px 10px;border-radius:6px;border:1px dashed var(--brass-dark);background:rgba(201,163,90,.07);font-size:12.5px;line-height:1.5;color:var(--brass-light)} .c6learn .ic{width:26px;height:26px}
+.c6empty{margin:8px 4px;font-size:12.5px;line-height:1.6;color:var(--ink-dim)} .c6foot{flex:none;margin:8px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-faint)} .c6done{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:rgba(201,163,90,.1);color:var(--brass-light);font-size:12.5px}
+/* 整備：四階的路線、下一階、素材（減半的劃掉原本的數量）、出示的戰利品 */
+#forgeTabs{flex:none;margin-bottom:10px} #forgeTabs button{padding:4px 0}
+.c6now{font-size:12.5px;color:var(--brass-light)}
+.c6track{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column;gap:5px;margin:4px 0 9px}      /* 0.8 X7：五階（第五階「三獸」）排成一列 */
+.c6tn{position:relative;display:flex;flex-direction:column;align-items:center;padding:5px 2px 4px;border-radius:6px;background:rgba(0,0,0,.25);border:1px solid var(--line);font-size:11px;line-height:1.35;color:var(--ink-faint);text-align:center}
+.c6tn i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink-faint);font:700 12px/1 var(--font-display);font-style:normal} .c6tn b{margin-top:2px;font-size:12px;font-weight:500;color:var(--ink-dim)}
+.c6tn.done{border-color:rgba(201,163,90,.45);background:rgba(201,163,90,.1);color:var(--brass-light)} .c6tn.done i{background:var(--brass);border-color:var(--brass-light);color:#241a0c} .c6tn.done b{color:var(--ink)}
+.c6tn.next{border-color:var(--ember);box-shadow:0 0 0 1px rgba(242,162,74,.3)} .c6tn.next i{border-color:var(--ember);color:var(--ember)} .c6tn.next b{color:var(--ember)}
+.c6tn u{position:absolute;top:-8px;left:50%;transform:translateX(-50%);padding:0 4px;border-radius:3px;background:#3a2f18;border:1px solid var(--brass);font-size:9.5px;line-height:13px;text-decoration:none;color:var(--brass-light);white-space:nowrap}
+.c6next{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;padding:6px 9px;border-radius:0 6px 6px 0;background:rgba(242,162,74,.08);border-left:3px solid var(--ember);font-size:12.5px} .c6next b{font-family:var(--font-display);font-size:14.5px} .c6next span{color:var(--ink-dim)}
+.c6next i.half{margin-left:auto;font-style:normal;font-size:11px;font-weight:700;line-height:17px;padding:0 6px;border-radius:3px;background:var(--brass);color:#241a0c}
+.c6foot+.c6foot{margin-top:2px}
+/* 訂做、獸飾、披肩：卡片排成三欄 */
+.c6bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .c6lead{font-size:13px;font-weight:500} .c6bar .c6tiles{flex:1;min-width:260px}
+.c6cards{display:grid;gap:6px;margin-top:8px} .c6cards.w3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c6row.card{min-height:46px;border:1px solid var(--line);border-radius:6px;padding:6px 6px 6px 9px;background:rgba(0,0,0,.24)} .c6row.card .txt b{font-size:13px} .c6row.card button{padding:4px 9px}
+.c6row.card.have{border-color:rgba(143,208,138,.32)} .c6row.card .ok{padding:0 6px;font-weight:700;color:var(--ok)} .c6row.card.have small{color:var(--ok)}
+.c6row.card.tall{position:relative;flex-direction:column;align-items:stretch;gap:6px;padding:9px} .c6row.card.tall .hd{display:flex;align-items:center;gap:8px} .c6row.card.tall .hd b{font-family:var(--font-display);font-size:14.5px}
+.c6row.card.tall .fx{margin:0;min-height:36px;font-size:12px;line-height:1.5;color:#cdeec9} .c6row.card.tall .c6tiles{grid-template-columns:1fr} .c6row.card.tall .own{font-size:11.5px;color:var(--ink-dim)} .c6row.card.tall>button{margin-top:auto;padding:5px 9px}
+.c6row.card.cur{border-color:var(--brass);background:rgba(201,163,90,.1)} .c6row.card .rib{position:absolute;top:8px;right:8px;font-style:normal;font-size:10.5px;font-weight:700;line-height:16px;padding:0 6px;border-radius:3px;background:var(--brass);color:#241a0c}
+#winCloak .c6row.card.tall .hd{flex-direction:column;gap:4px;text-align:center} #winCloak .fx2{display:flex;flex-direction:column;align-items:center;font-size:12px;line-height:1.55;color:#cdeec9} #winCloak .c6row.card.tall .own{text-align:center;margin:0}
+#winCloak .c6bar{padding:6px 10px 6px 6px;border-radius:6px;background:rgba(0,0,0,.28)} #winCloak .c6bar .ic{width:32px;height:32px} .c6dr{margin-left:auto;font-size:12px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+/* 一列一把武器（獸飾格、熔掉、武器架） */
+.c6row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)} .c6row .txt{flex:1;min-width:0} .c6row .txt b{display:flex;align-items:center;gap:6px;font-weight:500} .c6row .txt small{display:block;font-size:11.5px;line-height:1.45;color:var(--ink-dim)}
+.c6row .ic{width:34px;height:34px} .c6row button{flex:none;font-size:12.5px;white-space:nowrap} .c6row .acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:55%} .c6row .dim,.c6row small.dim{font-size:12px;color:var(--ink-faint)}
+.c6tag{font-style:normal;font-size:10.5px;font-weight:700;line-height:15px;padding:0 5px;border-radius:3px;border:1px solid var(--ember);color:var(--ember)}
+.c6slot{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--line-strong)} .c6slot.big{width:34px;height:34px} .c6slot.on{border:1.5px solid var(--brass);background:rgba(201,163,90,.15)} .c6slot.none{visibility:hidden} .c6slot .ic{width:82%;height:82%}
+.c6row.melt .back{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px;max-width:250px} .bk{display:inline-flex;align-items:center;gap:1px;padding:0 6px 0 1px;border-radius:11px;background:rgba(0,0,0,.3);border:1px solid var(--line);font-size:11.5px} .bk .ic{width:20px;height:20px} .bk em{font-style:normal;font-variant-numeric:tabular-nums}
+.c6row.melt.arm{margin:0 -8px;padding-left:8px;padding-right:8px;background:rgba(226,114,95,.1)}
+.ic.empty{background:none;box-shadow:inset 0 0 0 1.5px var(--line);opacity:.7}
+/* 角色面板「武器架與狀態」：不用捲動就看得到武器、披肩、飽食精力、增益與總計 */
+#charTabs{margin-bottom:10px}
+#charPageRack .c6sec:first-child{margin-top:0} #charPageRack .c6row{padding:5px 0} #charPageRack .c6row .ic{width:32px;height:32px}
+#charPageRack .c6row.wp.cur .txt b{color:var(--ember)} #charPageRack .c6row .ok{min-width:44px;text-align:center;font-size:12px;font-weight:700;color:var(--ok)}
+#charPageRack .c6row.cloak .acts button{padding:3px 8px;font-size:12px} #charPageRack .c6row.cloak.cur .txt small{color:var(--ok)}
+.c6grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px} .c6grid button{font-size:12.5px;padding:5px 4px} .c6grid button.on{border-color:var(--ember);color:var(--ember)}
+.c6state{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.c6need{padding:6px 8px 7px;border-radius:6px;background:rgba(0,0,0,.28);border:1px solid var(--line)} .c6need .top{display:flex;align-items:center;gap:5px;font-size:12.5px} .c6need .top .ic{width:16px;height:16px} .c6need .top b{font-weight:500} .c6need .top em{margin-left:auto;font-size:12px;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink-dim)}
+.c6need .nbar{display:block;height:8px;margin:5px 0 4px} .c6need small{display:block;font-size:11px;line-height:1.4;color:var(--ink-dim)} .c6need.hi small{color:var(--ok)} .c6need.lo small,.c6need.zero small{color:var(--bad)}
+.c6buff{display:flex;align-items:center;flex-wrap:wrap;gap:2px 7px;min-width:0;padding:5px 7px;border-radius:6px;background:rgba(0,0,0,.28);border:1px solid rgba(143,208,138,.32)}
+.c6buff .ic{width:28px;height:28px} .c6buff .txt{flex:1;min-width:0} .c6buff b{display:block;font-size:12.5px;font-weight:500} .c6buff small{display:block;font-size:11px;line-height:1.35;color:var(--ok)} .c6buff em{width:100%;font-size:11px;font-style:normal;font-variant-numeric:tabular-nums;color:var(--ink-dim)} .c6buff em.town{color:var(--ink-faint)}
+.c6buff.empty{border-style:dashed;border-color:var(--line)} .c6buff.empty b{color:var(--ink-dim)} .c6buff.empty small{color:var(--ink-faint)} .c6buff.empty .ic{opacity:.7}
+.c6sum{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:8px;padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.3);font-size:12.5px;font-variant-numeric:tabular-nums} .c6sum .good{color:var(--ok)}
+#grid{max-height:320px;overflow-y:auto;padding-right:2px}
+.ic img{width:100%;height:100%;display:block}
+/* 0.6 對打與組隊：名牌（隊友綠、通緝犯紅；記號不只靠顏色）、全場公告、組隊邀請、隊伍列表 */
+.tag.other .tag-name{pointer-events:auto;cursor:pointer}
+.tag.ally .tag-name{color:#a6eda0} .tag.ally .tag-name::before{content:"隊 ";font-size:10px;font-weight:700;color:#d2f7cd} .tag.ally .tag-bar i{background:#6fd36a}
+.tag.outlaw .tag-name{color:#ff5a46;font-weight:700;text-shadow:0 1px 2px #000,0 0 7px rgba(255,40,20,.75)} .tag.outlaw .tag-name::before{content:"通緝 ";font-size:10px;color:#ffb3a6} .tag.ally.outlaw .tag-name{color:#a6eda0;font-weight:500;text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)} .tag.ally.outlaw .tag-name::before{content:"隊・通緝 ";color:#ff8a78}
+#notice{left:max(336px,calc(50% - 420px));right:max(248px,calc(50% - 420px));top:138px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:7}
+#notice p{margin:0;padding:6px 26px 7px;font-size:15px;letter-spacing:.04em;white-space:normal;max-width:100%;box-sizing:border-box;text-align:center;overflow-wrap:anywhere;color:#f7e4dc;background:linear-gradient(90deg,transparent,rgba(52,10,8,.92) 12%,rgba(52,10,8,.92) 88%,transparent);border-image:linear-gradient(90deg,transparent,rgba(255,96,74,.7),transparent) 1;border-style:solid;border-width:1px 0;text-shadow:0 1px 2px #000;animation:noticeIn .35s ease-out;transition:opacity .6s}
+#notice p b{color:#ff6a55;font-family:var(--font-display);font-weight:900;margin-right:3px}
+#notice p.hunt{color:#f6e7bf;background:linear-gradient(90deg,transparent,rgba(44,34,12,.92) 12%,rgba(44,34,12,.92) 88%,transparent);border-image:linear-gradient(90deg,transparent,rgba(240,215,154,.7),transparent) 1}
+#notice p.out{opacity:0}
+@keyframes noticeIn{from{opacity:0;transform:translateY(-6px)}}
+body.noticing #banner{top:max(26%,296px)}
+#chatLog .kill{color:#ff9282} #chatLog .hunt{color:#f0d79a}
+#invite{right:16px;bottom:126px;width:282px;padding:10px 14px 0;border-radius:7px;background:var(--panel);border:1px solid var(--brass-dark);border-top:2px solid var(--brass);box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:auto;overflow:hidden;z-index:8}
+.invTxt{text-align:center;font-size:14px} .invTxt b{font-family:var(--font-display);font-size:16px;color:var(--brass-light)} .invTxt small{margin:0 2px 0 6px;color:var(--ink-dim);font-size:11.5px} .invTxt span{display:block;margin-top:1px}
+.invBtns{display:flex;gap:8px;justify-content:center;margin:9px 0 10px} .invBtns button{min-width:100px;padding:5px 12px;font-size:14px} .invBtns button.primary{padding:5px 12px;font-size:14px} .invBtns kbd{margin-right:6px} .invBtns button.primary kbd{color:#241a0c;border-color:rgba(36,26,12,.45);background:rgba(255,255,255,.25)}
+.invBar{height:3px;margin:0 -14px;background:rgba(0,0,0,.5)} .invBar i{display:block;height:100%;background:var(--brass);transform-origin:left center}
+#party{left:16px;top:150px;width:301px;padding:6px 10px 8px;border-radius:6px;background:rgba(20,22,18,.72);border:1px solid var(--line);box-shadow:0 3px 10px rgba(0,0,0,.35)}
+#party .pHead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-dim)} #party .pHead b{font-family:var(--font-display);font-size:14px;color:#a6eda0;letter-spacing:.12em}
+#partyLeave{margin-left:auto;padding:0 8px;font-size:11.5px;line-height:20px;pointer-events:auto}
+.pm{margin-top:5px} .pmTop{display:flex;align-items:baseline;gap:6px;font-size:12.5px;text-shadow:0 1px 2px #000} .pmTop b{font-weight:500;color:#d2f7cd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:170px} .pmLv{color:var(--ink-dim);font-size:11px} .pmSt{margin-left:auto;font-style:normal;font-size:11px;color:var(--warn)}
+.pmBar{height:6px;margin-top:2px;border-radius:3px;background:rgba(0,0,0,.55);overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.6)} .pmBar i{display:block;height:100%;background:linear-gradient(#a8e6a0,#5fbf58);transform-origin:left center;transition:transform .15s linear}
+.pm.off{opacity:.55} .pm.ol .pmTop b{color:#ff8a78}
+body.talking #party,body.talking #notice,body.talking #invite{opacity:0!important;pointer-events:none}
+
+/* ===== 11-20 F4：迎新與劇情文字（?intro=a 電影字幕｜?intro=b 對白框＋旁白卡）。z-index：暗帶 4（低於血條技能欄的 5）、字與按鈕 6、旁白卡 26 ===== */
+#i11{position:fixed;inset:0;pointer-events:none}
+#i11 .i11band,#i11 .i11box,#i11 .i11skip{opacity:0;transition:opacity .45s} #i11.on .i11band,#i11.on .i11box,#i11.on .i11skip{opacity:1}
+#i11 .i11band{position:fixed;left:0;right:0;bottom:0;height:44vh;z-index:4;background:linear-gradient(to top,rgba(4,5,3,.94) 0%,rgba(4,5,3,.84) 40%,rgba(4,5,3,.5) 72%,transparent 100%)}
+#i11.mb .i11band{display:none}
+#i11 .i11box{position:fixed;left:50%;bottom:158px;transform:translateX(-50%);z-index:6;width:min(1000px,calc(100vw - 100px));text-align:center}
+#i11.on .i11box{pointer-events:auto;cursor:pointer}
+#i11 .i11who{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-bottom:4px;font-family:var(--font-display)} #i11 .i11who[hidden]{display:none}
+#i11 .i11who b{font-size:clamp(17px,1.9vh,22px);letter-spacing:.24em;color:var(--brass-light);text-shadow:0 2px 3px #000,0 0 10px #000} #i11 .i11who span{font-size:clamp(12px,1.35vh,15px);color:var(--ink-dim);text-shadow:0 1px 3px #000}
+#i11 .i11txt{margin:0;min-height:1.65em;font-family:var(--font-display);font-size:clamp(24px,2.7vh,32px);line-height:1.65;letter-spacing:.08em;color:#fff;text-shadow:0 2px 3px #000,0 0 9px rgba(0,0,0,.95),0 0 24px rgba(0,0,0,.9)}
+#i11 .i11txt .h{opacity:0}
+#i11 .i11hint{margin-top:5px;font-size:12.5px;letter-spacing:.06em;color:var(--ink-dim);text-shadow:0 1px 3px #000;min-height:17px}
+.i11skip{position:fixed;right:22px;bottom:126px;z-index:6;padding:6px 15px;font-size:14px;letter-spacing:.1em;border:1px solid var(--brass-dark);border-radius:16px;background:rgba(14,15,11,.82);color:var(--ink);text-shadow:0 1px 2px #000;pointer-events:none} #i11.on .i11skip,#i11card.on .i11skip{pointer-events:auto} .i11skip:hover{background:rgba(52,49,38,.95);border-color:var(--brass)} .i11skip[hidden]{display:none}
+/* B：和 NPC 對話同一套（深底、黃銅框、左上名牌、思源宋體），只是不遮血條技能欄、不鎖操作 */
+#i11.mb .i11box{bottom:138px;width:min(820px,calc(100vw - 540px));min-width:520px;box-sizing:border-box;padding:24px 26px 9px;text-align:left;border:1px solid var(--brass-dark);border-radius:8px;background:rgba(18,20,16,.93);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.5)}
+#i11.mb .i11who{position:absolute;left:18px;top:-17px;margin:0;justify-content:flex-start;gap:9px;padding:2px 14px 3px;border:1px solid var(--brass);border-radius:5px;background:#231d12}
+#i11.mb .i11who b{font-size:17px;letter-spacing:.1em;text-shadow:none} #i11.mb .i11who span{font-size:12px;text-shadow:none}
+#i11.mb .i11txt{min-height:3.3em;font-size:clamp(19px,2.15vh,25px);line-height:1.65;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#i11.mb .i11hint{text-align:right;font-size:11.5px;color:var(--ink-faint);text-shadow:none}
+#i11card{position:fixed;inset:0;z-index:26;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 46%,rgba(12,13,10,.9),rgba(3,4,3,.975));opacity:0;pointer-events:none;transition:opacity .9s;cursor:pointer} #i11card.on{opacity:1;pointer-events:auto}
+#i11card .i11cardin{width:min(920px,86vw);text-align:center} #i11card .i11kick{margin-bottom:clamp(14px,3vh,34px);font-family:var(--font-display);font-size:clamp(14px,1.7vh,19px);letter-spacing:.7em;text-indent:.7em;color:var(--brass)}
+#i11card .i11p{margin:.5em 0;font-family:var(--font-display);font-size:clamp(26px,3.4vh,42px);line-height:1.75;letter-spacing:.1em;color:#f8f1de;text-shadow:0 2px 8px #000;opacity:0;transform:translateY(10px);transition:opacity 1.1s,transform 1.1s,color 1.1s} #i11card .i11p.on{opacity:1;transform:none} #i11card .i11p.on:not(:last-child){opacity:.55} #i11card .i11p.on:last-child:not(:first-child){color:var(--brass-light)}
+#i11card .i11cardhint{position:fixed;left:0;right:0;bottom:26px;text-align:center;font-size:13px;letter-spacing:.14em;color:var(--ink-faint)} #i11card .i11skip{bottom:20px;right:26px}
+body.talking #i11 .i11box,body.talking #i11 .i11band,body.talking #i11 .i11skip,body.talking #i11card,body:not(.playing) #i11,body:not(.playing) #i11card{opacity:0!important;pointer-events:none!important}
+@media (max-width:1180px){#i11.mb .i11box{width:calc(100vw - 80px);min-width:0}}
+</style>
+</head>
+<body>
+<canvas id="scene" tabindex="0" aria-label="遊戲畫面"></canvas>
+<div id="labels"></div>
+
+<div class="hud" id="vignette"></div>
+<div class="hud" id="lowhp"></div>
+
+<div class="hud" id="plate">
+  <div id="lvBadge"><small>LV</small><span id="lvNum">1</span></div>
+  <div class="col">
+    <div class="who"><b id="pName">旅人</b><span id="pUid"></span></div>
+    <div class="bar hp"><i id="hpFill"></i><em id="hpText"></em></div>
+    <div class="bar st" id="stBar"><i id="stFill"></i></div>
+    <div class="bar mp" id="mpBar"><i id="mpFill"></i><em id="mpText"></em></div>
+    <div id="needs6"><div class="n6" id="satBox" title="飽食"><span class="ic bare" data-ic="satiety"></span><div class="nbar sat"><i id="satFill"></i><u></u><u></u></div><em id="satTag"></em></div><div class="n6" id="enBox" title="精力"><span class="ic bare" data-ic="energy"></span><div class="nbar en"><i id="enFill"></i><u></u><u></u></div><em id="enTag"></em></div></div>
+    <div id="buffs6"></div>
+    <div id="buffs"></div>
+    <button id="ptsBtn" hidden></button>
+  </div>
+</div>
+
+<div class="hud" id="party" hidden><div class="pHead"><b>隊伍</b><span id="partyN"></span><button id="partyLeave">離開隊伍</button></div><div id="partyList"></div></div>
+<div class="hud" id="tracker" hidden></div>
+
+<div class="hud" id="watch">
+  <div id="watchCase" title="點一下開啟地圖（M）">
+    <div id="watchDial"><canvas id="mini" width="300" height="300"></canvas></div>
+    <svg id="watchTicks" viewBox="0 0 196 196" aria-hidden="true"></svg>
+    <div id="watchGlass"></div>
+    <div id="sunArm"><div id="sunDot"></div></div>
+  </div>
+  <div id="zoneLine"><b id="zoneName">鐵環城</b><span id="zoneSub"></span></div>
+</div>
+
+<div class="hud" id="feed"></div>
+<div class="hud" id="banner"><b></b><span></span></div>
+<div class="hud" id="notice"></div>
+<div class="hud" id="invite" hidden><div class="invTxt"><b id="invWho"></b><small id="invLv"></small><span>邀請你加入隊伍</span></div><div class="invBtns"><button id="invYes" class="primary"><kbd>Y</kbd>接受</button><button id="invNo"><kbd>N</kbd>拒絕</button></div><div class="invBar"><i id="invFill"></i></div></div>
+<div class="hud" id="lvup"><b>等級提升</b><span></span></div>
+<div class="hud" id="toast"></div>
+<div class="hud" id="tip"><b>提示</b><span></span></div>
+<div class="hud" id="prompt"></div>
+<div class="hud" id="gather6"><span id="g6ic"></span><div><b id="g6name"></b><div class="nbar"><i id="g6fill"></i></div></div></div>
+<div class="hud" id="rest6"><div class="r6h"><span class="ic" data-ic="rest"></span><b id="r6name">營火</b><small>坐著休息</small></div><div class="r6bar"><span class="ic bare" data-ic="energy"></span>精力<div class="nbar en"><i id="r6fill"></i><u></u><u></u></div><em id="r6en"></em></div><p id="r6rate"></p><p id="r6tip"></p><div class="r6btns"><button id="r6cook"><kbd>1</kbd>料理</button><button id="r6up"><kbd data-key="interact">E</kbd>起身</button></div></div>
+<div class="hud" id="narr"></div>
+
+<div class="hud" id="bottom">
+  <div id="slots">
+    <div class="slot key"><kbd data-key="attack">左鍵</kbd><span class="ai" data-ic="attack"></span><small>輕攻擊</small></div>
+    <div class="slot key"><kbd data-key="heavy">F</kbd><span class="ai" data-ic="heavy"></span><small>重攻擊</small></div>
+    <div class="slot key"><kbd data-key="guard">右鍵</kbd><span class="ai" data-ic="guard"></span><small>格擋</small></div>
+    <div class="slot key"><kbd data-key="dodge">空白</kbd><span class="ai" data-ic="dodge"></span><small>閃避</small></div>
+    <i class="sep"></i>
+    <div id="slotHeal" class="pick-potion">
+      <div class="slot use hc pot" data-item="potion" title="治療藥水"><span class="ai" id="healGlyph"></span><em id="healN">0</em><b class="prog"></b></div>
+      <div class="slot use hc meat" data-item="meat" title="獸肉"><span class="ai" id="meatGlyph"></span><em id="meatN">0</em><b class="prog"></b></div>
+      <i class="cd" id="healCd"></i><u id="healT"></u><kbd data-key="heal" id="healKey">Q</kbd><small id="healLbl">回復</small>
+    </div>
+    <i class="sep"></i>
+    <div class="slot skill empty"><kbd data-key="skill1">1</kbd><span></span><em></em><i class="cd"></i><small>技能</small></div>
+    <div class="slot skill empty"><kbd data-key="skill2">2</kbd><span></span><em></em><i class="cd"></i><small>技能</small></div>
+    <div class="slot skill empty"><kbd data-key="skill3">3</kbd><span></span><em></em><i class="cd"></i><small>技能</small></div>
+    <div class="slot skill empty"><kbd data-key="skill4">4</kbd><span></span><em></em><i class="cd"></i><small>技能</small></div>
+  </div>
+  <div id="xpWrap"><div id="xpBar"><i id="xpFill"></i></div><div id="xpText"></div></div>
+</div>
+
+<div class="hud" id="chat">
+  <div id="chatLog"></div>
+  <input id="chatIn" maxlength="60" placeholder="按 Enter 說話" autocomplete="off">
+</div>
+
+<div class="hud" id="menu">
+  <button data-win="char">角色<kbd data-key="char">C</kbd><i class="dot" id="charDot" hidden></i></button>
+  <button data-win="bag">背包<kbd data-key="bag">I</kbd></button>
+  <button data-win="quest">任務<kbd data-key="quest">J</kbd><i class="dot" id="questDot" hidden></i></button>
+  <button data-win="skill">技能<kbd data-key="skills">K</kbd><i class="dot" id="skillDot" hidden></i></button>
+  <button data-win="map">地圖<kbd data-key="map">M</kbd></button>
+  <button data-win="set">設定<kbd>Esc</kbd></button>
+</div>
+
+<div class="hud" id="cross"></div>
+<div id="lockMark" style="display:none"></div>
+<div class="hud" id="moveName"></div>
+<div id="keyCap" hidden><div><b></b><span>按下要使用的鍵盤鍵或滑鼠鍵　Esc 取消</span></div></div>
+
+<div class="hud" id="dead"><div><b>倒下了</b><span id="deadText"></span></div></div>
+
+<section class="win" id="winChar" hidden>
+  <header><h2>角色</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div id="charHead"></div>
+    <div class="seg" id="charTabs"><button data-t="stat">能力與配點</button><button data-t="rack">武器架與狀態</button></div>
+    <div id="charPageRack" hidden></div>
+    <div id="charPageStat">
+    <div id="ptsLine"><span>可分配點數</span><b id="ptsN">0</b></div>
+    <div id="statRows"></div>
+    <div class="actions"><button id="ptsReset">重設</button><button class="primary" id="ptsOk">確認配點</button></div>
+    <h3>戰鬥數值</h3>
+    <dl id="derived"></dl>
+    <h3>狩獵紀錄</h3>
+    <p class="hint">每種野獸第一次擊敗都有一筆額外經驗。</p>
+    <div id="hunt"></div>
+    </div>
+  </div>
+</section>
+
+<section class="win" id="winBag" hidden>
+  <header><h2>背包</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div class="goldline"><span>金幣</span><b id="goldN">0</b></div>
+    <div id="grid"></div>
+    <div id="itemInfo">點選道具查看說明。</div>
+  </div>
+</section>
+
+<section class="win" id="winSkill" hidden>
+  <header><h2>技能與天賦球</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div class="seg" id="skTabs"><button data-t="skill">技能</button><button data-t="move">招式表與操作</button></div>
+    <div id="skPageSkill">
+      <div id="skBar"></div>
+      <div id="skGiftWrap" hidden><h3>任務獎勵：挑一顆天賦球</h3><div id="skGift"></div></div>
+      <h3>已學會的技能（點右邊的按鍵放進技能欄；技能只消耗魔力）</h3><div id="skKnown"></div>
+      <div id="skBasicWrap" hidden><h3>之後會領悟的基礎技能（不需要天賦球，等級到了就會）</h3><div id="skBasic"></div></div>
+      <h3>持有的天賦球</h3><div id="skOrbs"></div>
+    </div>
+    <div id="skPageMove" hidden>
+      <p class="hint" id="skMoveHead"></p>
+      <div id="skMoves"></div>
+      <h3>操作要領</h3><ul id="skGuide"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="win" id="winQuest" hidden>
+  <header><h2>任務日誌</h2><button class="x" data-close>×</button></header>
+  <div class="qWrap">
+    <div class="qSide"><div class="seg" id="qTabs"><button data-t="active">進行中</button><button data-t="open">可接</button><button data-t="done">已完成</button></div><div id="qList"></div></div>
+    <div class="body" id="qDetail"></div>
+  </div>
+  <div class="qFoot"><b class="m1">！</b>有任務可接<b class="m2">？</b>可以回報<b class="m3">…</b>任務要找他談　｜　指引只標出大概的範圍；隱藏任務不會列在「可接」，也沒有指引，要靠打聽與探索。</div>
+</section>
+
+<section class="win" id="winShop" hidden>
+  <header><h2>雜貨商 米洛</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div class="goldline"><span>你的金幣</span><b id="shopGold">0</b></div>
+    <h3>購買</h3><div id="shopBuy"></div>
+    <h3>賣出素材</h3><div id="shopSell"></div>
+  </div>
+</section>
+
+<section class="win" id="winCraft" hidden>
+  <header><span class="hic" id="craftIc"></span><h2 id="craftTitle">料理</h2><button class="x" data-close>×</button></header>
+  <div class="body"><div class="c6note" id="craftNote"></div><div class="c6wrap"><div class="c6list" id="craftList"></div><div class="c6info" id="craftInfo"></div></div></div>
+</section>
+
+<section class="win" id="winForge" hidden>
+  <header><span class="hic" data-ic="tier2"></span><h2>鐵匠 布蘿娜</h2><span class="hgold" title="你的金幣"><span class="ic bare" data-ic="gold"></span><b id="forgeGold">0</b></span><button class="x" data-close>×</button></header>
+  <div class="body">
+    <div class="seg" id="forgeTabs"><button data-t="up">整備</button><button data-t="order">訂做</button><button data-t="charm">獸飾</button><button data-t="melt">熔掉</button></div>
+    <div id="forgeBody"></div>
+  </div>
+</section>
+
+<section class="win" id="winCloak" hidden>
+  <header><span class="hic" data-ic="cloak_wolf"></span><h2>老獵人 哈根　披肩</h2><span class="hgold" title="你的金幣"><span class="ic bare" data-ic="gold"></span><b id="cloakGold">0</b></span><button class="x" data-close>×</button></header>
+  <div class="body"><div id="cloakBody"></div></div>
+</section>
+
+<section class="win" id="winMap" hidden>
+  <header><h2>第一層　萬獸原野</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <canvas id="bigMap" width="900" height="900"></canvas><div id="mapTip" hidden></div>
+    <div id="mapLegend"><span><i style="background:#f2a24a"></i>你</span><span><i style="background:#7fc4ff"></i>其他玩家</span><span><i style="background:#8fe38a"></i>隊友</span><span><i style="background:#ff5a4a"></i>通緝犯</span><span><i style="background:#e8c25c"></i>城鎮居民</span><span><i style="background:#ffd76a"></i>遺落的金幣</span><span><i class="fire"></i>營火</span><span><i class="lm8"></i>地標</span><span><i class="fish8"></i>釣點</span><span><i style="background:#f2a24a;border-radius:1px;transform:rotate(45deg)"></i>追蹤中任務的大概範圍（斜線區域或虛線圈）</span><span>沒去過的地方被霧蓋住。滾輪縮放、拖曳移動，滑過地名看說明。</span></div>
+  </div>
+</section>
+
+<section class="win" id="winSet" hidden>
+  <header><h2>設定</h2><button class="x" data-close>×</button></header>
+  <div class="body">
+    <h3>畫質</h3>
+    <div class="seg" id="qSeg"><button data-q="high">高</button><button data-q="medium">中</button><button data-q="low">低</button></div>
+    <h3>文字速度</h3>
+    <div class="seg" id="txtSeg"><button data-s="slow">慢</button><button data-s="mid">中</button><button data-s="fast">快</button><button data-s="now">立即</button></div>
+    <p class="hint">開場白、旁白與托比迎新的逐字速度。顯示中按空白鍵可以直接看完整句。</p>
+    <h3>聲音</h3>
+    <div id="volGrid">
+      <label><span>總音量</span><input type="range" id="vol" min="0" max="100" value="80"><b id="volN">80</b></label>
+      <label><span>音效</span><input type="range" id="volSfx" min="0" max="100" value="90"><b id="volSfxN">90</b></label>
+      <label><span>環境音</span><input type="range" id="volAmb" min="0" max="100" value="60"><b id="volAmbN">60</b></label>
+      <label><span>音樂</span><input type="range" id="volMus" min="0" max="100" value="50"><b id="volMusN">50</b></label>
+    </div>
+    <h3>其他</h3>
+    <div class="rowline"><span>外觀</span><button id="reCreate">重新捏角色</button></div>
+    <div class="rowline"><span>連線與效能資訊</span><button id="diagBtn">顯示 <kbd>F3</kbd></button></div>
+    <h3>視角</h3>
+    <div class="seg" id="viewSeg"><button data-view="tps">背後視角</button><button data-view="top">俯視視角</button></div>
+    <div class="rowline"><span>滑鼠靈敏度</span><input type="range" id="sens" min="20" max="250" value="100"></div>
+    <div class="rowline"><span>上下反轉</span><input type="checkbox" id="invY"></div>
+    <p class="hint" id="viewHint"></p>
+    <h3>按鍵設定</h3>
+    <p class="hint">點一下右邊的按鍵，再按下想改成的鍵盤鍵或滑鼠鍵。和別的動作重複時，兩個動作的按鍵會互換。</p>
+    <div id="keyList"></div>
+    <div class="rowline"><span>Esc 開關設定、F3 連線資訊、滾輪拉近拉遠（鎖定中改成切換目標）為固定按鍵</span><button id="keyReset">全部重設</button></div>
+    <h3>聲音素材致謝</h3>
+    <div id="audioCredits">
+      <p><b>0 A.D.</b>　© Wildfire Games（https://www.wildfiregames.com/）<i>CC BY-SA 3.0</i><br>部分音效與環境音、全部音樂取自 0 A.D.，以 Creative Commons Attribution-Share Alike 3.0 授權（http://creativecommons.org/licenses/by-sa/3.0/）。本遊戲使用的版本經過剪輯、混音與轉檔，這些修改後的音檔同樣以 CC BY-SA 3.0 提供。</p>
+      <p><b>「tiger roar」</b>　作者 videog（https://freesound.org/people/videog/sounds/149190）<i>CC BY 4.0</i><br>猛虎的吼聲，以 Creative Commons Attribution 4.0 授權（https://creativecommons.org/licenses/by/4.0/）；經過剪輯、削波修復與轉檔。</p>
+      <p><b>Kenney</b>（www.kenney.nl）<i>CC0</i><br>介面、腳步、撞擊等音效與提示樂句：Interface Sounds、UI Audio、RPG Audio、Impact Sounds、Music Jingles。</p>
+      <p><b>Lentikula</b>「Healing Spell Impacts」（https://lentikula.itch.io/healing-spell-impacts）<i>CC0</i><br>法術音效。</p>
+      <p><b>BigSoundBank.com</b>「Forest」、「Campaign at night 4」<i>CC0</i><br>森林與夜晚的環境音。</p>
+      <p><b>美國國家公園管理局</b>（National Park Service）黃石公園聲音庫<i>公有領域</i><br>狼、熊、鹿的叫聲。</p>
+      <p>每個音檔的來源、授權與修改說明見 assets/LICENSES.txt。</p>
+    </div>
+  </div>
+</section>
+
+<div id="dialog" hidden>
+  <div id="dlgSide"><div id="dlgCard" hidden></div><div id="dlgOpts"></div></div>
+  <div id="dlgBox">
+    <div id="dlgWho"><b id="dlgName"></b><span id="dlgTitle"></span></div>
+    <p id="dlgText"></p>
+    <div id="dlgNext"></div>
+  </div>
+</div>
+
+<div id="diag" hidden><h2>連線與效能</h2><dl id="diagList"></dl><button id="diagCopy">複製這份資訊</button></div>
+
+<div id="creatorTitle" hidden><b>塑造你的冒險者</b><span>外觀會保存下來，之後可以在設定裡重新調整</span></div>
+<section class="win" id="creator" hidden>
+  <header><h2>外觀</h2></header>
+  <div class="crWrap"><nav id="crTabs"></nav><div class="body" id="crBody"></div></div>
+  <div class="actions crActions"><button id="crRandom">隨機</button><button id="crSimilar">相似的臉</button><button id="crReset">重設此頁</button><button class="primary" id="crDone">完成</button></div>
+</section>
+<div id="creatorHint" hidden>按住滑鼠左右拖曳可以轉動角色</div>
+
+<div id="start" class="loading">
+  <div id="card">
+    <div class="floor">REALMCLIMB</div>
+    <h1>登界</h1>
+    <div class="sub">第一層　萬獸原野　試玩版</div>
+    <div class="rule"></div>
+    <div id="loading"><div id="loadBar"><i></i></div><div id="loadText">準備中</div></div>
+    <div id="entry" hidden>
+      <p id="entryLead"></p>
+      <div class="row"><input id="nameIn" maxlength="12" placeholder="角色名稱" autocomplete="off" hidden><button class="primary" id="enterBtn">進入</button></div>
+      <div id="entryMsg"></div>
+      <div id="entryNote"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 遊戲程式若沒有載入（被擋下或檔案缺漏），在載入畫面上說明，而不是一直停在「準備中」
+(function () {
+  var errs = [];
+  window.addEventListener('error', function (e) { errs.push((e.message || '資源載入失敗') + (e.filename ? '　' + e.filename.split('/').slice(-2).join('/') + ':' + e.lineno : (e.target && (e.target.src || e.target.href) ? '　' + (e.target.src || e.target.href) : ''))); }, true);
+  setTimeout(function () {
+    if (window.__boot) return;
+    var t = document.getElementById('loadText'); if (!t) return;
+    t.style.color = '#e8c25c'; t.style.userSelect = 'text';
+    t.textContent = '遊戲程式沒有載入。請把這行訊息貼給 Claude：' + (errs.length ? errs.slice(0, 3).join('；') : '沒有錯誤訊息（模組腳本未執行）');
+  }, 9000);
+})();
+</script>
+<script>
+// 0.6a（w6-fix）：左上角角色狀態（#plate，增益多了會變高）的底邊 → CSS 變數 --plateB，整備與料理視窗據此往下讓
+(function () { var p = document.getElementById('plate'), root = document.documentElement; if (!p) return; var f = function () { root.style.setProperty('--plateB', Math.ceil(p.getBoundingClientRect().bottom) + 'px'); }; f(); if (window.ResizeObserver) new ResizeObserver(f).observe(p); window.addEventListener('resize', f); })();
+</script>
+<script src="./js/main.js" type="module"></script>
+</body>
+</html>

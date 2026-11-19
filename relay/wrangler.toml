@@ -21,7 +21,7 @@ new_sqlite_classes = ["Room"]
 # __PAGES_ORIGIN__ 會被 GitHub Actions 自動換成 https://<倉庫擁有者>.github.io；本機 wrangler dev 時它不會匹配任何網站，無妨。
 ALLOWED_ORIGINS = "__PAGES_ORIGIN__,http://localhost:*,http://127.0.0.1:*"
 # 房間白名單（逗號分隔）。
-ROOMS = "realmclimb-08"
+ROOMS = "realmclimb-08,realmclimb-08-preview"
 # 沒有 Origin 標頭的連線（非瀏覽器程式）要不要放行。正式環境保持 0。
 ALLOW_NO_ORIGIN = "0"
 MAX_PEERS = "24"          # 每房間人數上限（ws協定 §1 建議 24；要 60 就改這裡）
