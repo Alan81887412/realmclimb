@@ -3,9 +3,11 @@
 import * as THREE from './three.bundle.js';
 const data = {}, failed = {};
 const base = 'assets/model/';
+export const TIGER14 = typeof location !== 'undefined' && /[?&]tiger=14(&|$)/.test(location.search);      /* 預覽版切換：網址帶 ?tiger=14 才用 tiger14 新老虎（assets/model/tiger14.*），預設仍是舊老虎 */
 async function load(name) {
+  const file = name === 'tiger' && TIGER14 ? 'tiger14' : name;
   try {
-    const [mr, br] = await Promise.all([fetch(base + name + '.json'), fetch(base + name + '.bin')]);
+    const [mr, br] = await Promise.all([fetch(base + file + '.json'), fetch(base + file + '.bin')]);
     if (!mr.ok || !br.ok) throw new Error('抓不到模型檔');
     const meta = await mr.json(), buf = await br.arrayBuffer(), n = meta.verts;
     const seg = (k, T, len) => { const s = meta[k]; if (!s || s.offset + s.bytes > buf.byteLength) throw new Error('模型檔缺 ' + k); return new T(buf, s.offset, len); };
@@ -18,7 +20,7 @@ async function load(name) {
     }
     for (let i = 0; i < pos.length; i++) if (!Number.isFinite(pos[i])) throw new Error('座標有 NaN');
     for (let i = 0; i < idx.length; i++) if (idx[i] >= n) throw new Error('索引超界');
-    const tex = await new THREE.TextureLoader().loadAsync(base + (meta.tex || name + '.png'));
+    const tex = await new THREE.TextureLoader().loadAsync(base + (meta.tex || file + '.png'));
     tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos.slice(), 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv.slice(), 2));
@@ -30,7 +32,7 @@ async function load(name) {
 /* 製作人 11-18：改成通用。MODELS08 列出已經有新模型檔的名字（物種名，菁英加 E）；只載列出來的，沒列的物種照舊用程式拼的模型。
    VISK08：外觀放大倍率（只放大外觀，判定大小不變），沒列的是 1。 */
 export const MODELS08 = ['boar', 'boarE', 'bisonE', 'tiger', 'bear', 'wolf', 'bison', 'porc', 'deer', 'monkey', 'ibex', 'python', 'ape', 'apeY', 'bearE', 'wolfE', 'croc', 'pythonE'];      /* 11-19 08:39 使用者通過沼蟒、猩猩、小猩猩、老疤、霜背與動作（岩羊 11-19 01:36 已通過）；08:55 通過鱷魚、金紋蟒 */      /* apeY＝小猩猩（ape 的幼體 young）新模型；getModel08(type, elite, young) 的第三個參數取它 */
-export const VISK08 = { boarE: 1.5 / 1.38, bearE: 1.15, wolfE: 1.15 * 1.6625 / 1.954 };      /* bearE：老疤（菁英熊）外觀放大 1.15 倍，只放大外觀、判定大小不變 */
+export const VISK08 = Object.assign(TIGER14 ? { tiger: 1.205 / 1.183 } : {}, { boarE: 1.5 / 1.38, bearE: 1.15, wolfE: 1.15 * 1.6625 / 1.954 });      /* bearE：老疤（菁英熊）外觀放大 1.15 倍，只放大外觀、判定大小不變 */
 for (const m of MODELS08) load(m);
 export const getModel08 = (type, elite, young) => data[type + (young ? 'Y' : elite ? 'E' : '')] || null;
 export const getBoar08 = (elite) => data[elite ? 'boarE' : 'boar'] || null;

@@ -64,7 +64,7 @@ function limbSkin(m) {
    撲擊預備、威嚇時後腿與尾巴各自動作，橫跨這兩邊的三角形（霜背 301 個、老虎 27 個）就被拉成長片。
    處理：頂點的主導肢體（4 條腿、尾巴）和「離哪條骨鏈最近」不同、而且近很多（距離＜0.8 倍）時，把肢體骨權重整個改綁最近那一節；之後肢體頂點只留自己那一條肢體的權重。
    老虎（尾尖貼著後腿，27 個橫跨三角形）不重新認領，只移除橫跨三角形（接觸點，平常看不到）。同樣一個幾何做一次，用 userData.own08 記號。 */
-const OWN = { 'wolf!': { mv: 1, cut: 0 }, tiger: { mv: 0, cut: 1 } };      /* mv：重新認領頂點；cut：移除橫跨不同肢體的三角形。老虎的尾尖在綁定姿勢貼著後腿，重新認領反而讓交界變多，改成只切；霜背的臀與尾根是連續的皮，切會露洞，只重新認領 */
+const OWN = { 'wolf!': { mv: 1, cut: 0 }, tiger: Object.assign({ mv: 0, cut: 1 }, typeof location !== 'undefined' && /[?&]tiger=14(&|$)/.test(location.search) ? { tip: 0.2 } : {}) };      /* tip：只在 ?tiger=14 才開。tiger14 尾尖捲在臀上，貼臀那面（第 2 節尾骨起 0.2 以內；第 1 節只算臀後方 z＜-0.62）被自動蒙皮綁成骨盆，尾巴一動就拉出長片與破口 → 改綁最近尾骨 */      /* mv：重新認領頂點；cut：移除橫跨不同肢體的三角形。老虎的尾尖在綁定姿勢貼著後腿，重新認領反而讓交界變多，改成只切；霜背的臀與尾根是連續的皮，切會露洞，只重新認領 */
 function ownSkin(m) {
   const geo = m.mesh && m.mesh.geometry, key = m.type + (m.elite ? '!' : ''), O = OWN[key]; if (!geo || geo.userData.own08 || !O) return; geo.userData.own08 = 1;
   const si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, pos = geo.attributes.position, bn = m.sp.bones; if (!si || !sw || !pos) return;
@@ -76,7 +76,10 @@ function ownSkin(m) {
   const n = si.count, fin = new Int8Array(n).fill(-1); let moved = 0;
   for (let i = 0; i < n; i++) {
     const a = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)], b = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)]; let k0 = 0; for (let k = 1; k < 4; k++) if (b[k] > b[k0]) k0 = k;
-    let L = lm[a[k0]]; if (L < 0) continue;
+    let L = lm[a[k0]];
+    if ((L < 0 || L === 4) && O.tip) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i); let tb = null, td = O.tip; for (const s of seg) { if (s.limb !== 4 || s.bone === tl[0] || (s.bone === tl[1] && z > -0.62)) continue; const d = sd(x, y, z, s); if (d < td) { td = d; tb = s.bone; } }
+      if (tb !== null) { if (L < 0) { si.setXYZW(i, tb, 0, 0, 0); sw.setXYZW(i, 1, 0, 0, 0); fin[i] = 4; moved++; continue; } let hit = false, sm2 = 0; for (let k = 0; k < 4; k++) { if (lm[a[k]] < 0 && b[k] > 0) { b[k] = 0; hit = true; } sm2 += b[k]; } if (hit && sm2 > 1e-6) { for (let k = 0; k < 4; k++) b[k] /= sm2; si.setXYZW(i, a[0], a[1], a[2], a[3]); sw.setXYZW(i, b[0], b[1], b[2], b[3]); moved++; } } }      /* 尾尖頂點：骨盆主導的整顆改綁最近尾骨；尾骨主導但還帶一點骨盆權重的，把骨盆權重拿掉（只在 ?tiger=14 啟用） */
+    if (L < 0) continue;
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i); let bs = null, bd = 1e9, dd = 1e9; for (const s of seg) { const d = sd(x, y, z, s); if (d < bd) { bd = d; bs = s; } if (s.limb === L && d < dd) dd = d; }
     if (O.mv && bs.limb !== L && bd < 0.8 * dd) { for (let k = 0; k < 4; k++) if (lm[a[k]] >= 0) a[k] = bs.bone; L = bs.limb; moved++; }
     fin[i] = L; let sum = 0; for (let k = 0; k < 4; k++) { const l2 = lm[a[k]]; if (l2 >= 0 && l2 !== L) b[k] = 0; sum += b[k]; }
