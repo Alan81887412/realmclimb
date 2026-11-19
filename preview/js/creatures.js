@@ -12,6 +12,7 @@ import { beastFinish08 } from './beastfx08.js';
 import { getBoar08, getModel08, VISK08 } from './model08_boar.js';
 import { bearThreat08 } from './bearthreat08.js';      /* 熊的威嚇動作（人立 A／四足 B）*/
 import { anim08 } from './anim08.js';      /* 新模型的額外動作 */
+import { legQ, legU, RUN } from './gait08.js';      /* 四條腿的步法相位（側向四拍／對角／橫向奔馳），新舊模型共用 */
 
 const ST = { IDLE: 0, CHASE: 1, WIND: 2, STRIKE: 3, RECOVER: 4, STAGGER: 5, DEAD: 6, FLEE: 7, WARN: 8 };
 const PI = Math.PI, sin = Math.sin, cos = Math.cos, abs = Math.abs, hyp = Math.hypot;
@@ -1558,18 +1559,20 @@ function gait(m, T, sp, dt, k = 1) {
   let f = (0.95 + 1.45 * Math.min(g, 1)) * S.cad, Ls = sp * duty / f; if (Ls > Lmax) { f = sp * duty / Lmax; Ls = Lmax; }
   m.phase = (m.phase + dt * (m.sp.v8 && m.f8 > 0 ? m.f8 : Math.min(f, 4.2))) % 1;      /* 新模型：步頻由 gait08.js 依步幅上限推算（m.f8） */
   const ph = m.phase, lift = S.lift * (0.55 * wW + 0.85 * wT + 1.2 * wG), c2 = TAU * ph, iu = 1 / (S.u || 1), mdx = sin(m.md || 0), mdz = cos(m.md || 0), fpk = 0.4 + 0.6 * Math.max(0, mdz);      // m.md：移動方向（相對面向；π＝倒退）
+  const Q = legQ(m, ph, wW, wT, wG, false);      /* 11-20：相位表搬到 gait08.js（走路改側向四拍、猴猿對角序列、鱷魚對角成對） */
   for (let i = 0; i < 4; i++) {
-    const off = i === 0 ? 0.25 * wW + 0.5 * wT + 0.5 * wG : i === 1 ? 0.75 * wW + wT + 0.62 * wG : i === 2 ? 0 : 0.5 * wW + 0.5 * wT + 0.12 * wG, q = (ph + off) % 1; let z, y = 0, fp;
+    const q = Q[i]; let z, y = 0, fp;
     if (q < duty) { const s = q / duty; z = Ls * (0.5 - s); fp = 0.4 * smooth(0.65, 1, s) - 0.1 * (1 - smooth(0, 0.2, s)); }
     else { const s = (q - duty) / (1 - duty); z = Ls * (-0.5 + s * s * (3 - 2 * s)); y = sin(PI * Math.pow(s, 0.8)) * lift; fp = lerp(0.75, -0.3, smooth(0.1, 0.9, s)); }
     const zz = (z * mv + (i < 2 ? 0.03 : -0.02) * wG * mv) * iu; leg(T, i * 8, zz * mdx, y * mv * iu, zz * mdz, fp * mv * fpk);
   }
+  const gz = RUN.mode === 'trot' ? 0 : 1, wGg = wG * gz, wTT = wT + wG * (1 - gz);      /* 身體的奔跑項：橫向奔馳照舊（脊椎一伸一縮、一步一起伏），快速小跑改用小跑的一步兩彈 */
   // 身體：小跑一步彈兩下；奔跑整個身體前後擺、脊椎一伸一縮
-  T.by += (mv * S.bob * (wW * 0.25 * cos(2 * c2) + wT * 0.7 * cos(2 * c2 + 0.5) + wG * 1.5 * sin(c2 - 0.9)) - mv * 0.02 * wG) * iu; T.ssz += mv * wG * 0.07 * sin(c2 - 0.5);
-  T.bp += mv * (wG * -0.11 * cos(c2 + 0.2) + wT * 0.015 * sin(2 * c2)) + mv * wG * 0.03; T.br += mv * (wW * 0.03 + wT * 0.022) * sin(c2);
-  T.pp += mv * wG * -0.2 * cos(c2 - 0.15); T.cp += mv * wG * 0.1 * cos(c2 + 0.5); T.pw += mv * (wW * 0.07 + wT * 0.04) * sin(c2); T.cw -= mv * (wW * 0.05 + wT * 0.03) * sin(c2);
-  T.np += mv * (wW * 0.07 * cos(2 * c2 + 0.6) + wT * 0.03 * cos(2 * c2) + wG * 0.08 * cos(c2 + 0.2)); T.hp += mv * wG * 0.07 * cos(c2 + 0.4);
-  T.tp += mv * (S.tailRun * (0.25 * wT + wG) + wG * 0.12 * sin(c2 + 1)); T.tc -= mv * S.tailRun * 0.12 * wG;
+  T.by += (mv * S.bob * (wW * 0.25 * cos(2 * c2) + wTT * 0.7 * cos(2 * c2 + 0.5) + wGg * 1.5 * sin(c2 - 0.9)) - mv * 0.02 * wGg) * iu; T.ssz += mv * wGg * 0.07 * sin(c2 - 0.5);
+  T.bp += mv * (wGg * -0.11 * cos(c2 + 0.2) + wTT * 0.015 * sin(2 * c2)) + mv * wGg * 0.03; T.br -= mv * (wW * 0.03 + wTT * 0.022) * 0.5 * (legU(Q[0], duty) - legU(Q[1], duty) + legU(Q[2], duty) - legU(Q[3], duty));      /* 側傾：往「腳比較往前伸」的那一側壓低（伸得遠的那側髖要低才踩得到；11-20：由腳的位置算，不再用和腳錯 90 度的 sin；小跑時對角成對、左右抵銷＝幾乎不側傾）*/
+  T.pp += mv * wGg * -0.2 * cos(c2 - 0.15); T.cp += mv * wGg * 0.1 * cos(c2 + 0.5); if (!m.sp.v8) { const tw = mv * (wW * 0.05 + wTT * 0.035); T.pw -= tw * (legU(Q[2], duty) - legU(Q[3], duty)); T.cw -= tw * (legU(Q[0], duty) - legU(Q[1], duty)); }      /* 脊椎扭轉：左邊的肩／髖往前，該段就往右轉，由腳的前後位置算（11-20；新模型由 anim08 疊加）*/
+  T.np += mv * (wW * 0.07 * cos(2 * c2 + 0.6) + wTT * 0.03 * cos(2 * c2) + wGg * 0.08 * cos(c2 + 0.2)); T.hp += mv * wGg * 0.07 * cos(c2 + 0.4);
+  T.tp += mv * (S.tailRun * (0.25 * wT + wG) + wGg * 0.12 * sin(c2 + 1)); T.tc -= mv * S.tailRun * 0.12 * wG;
   return { g, mv, wG };
 }
 // 受擊反應（只是畫面，每個人各自算）：(dx, dz) 是受力的方向（世界座標，從出手的人指向野獸），k 是力道（輕 0.4、重 0.85、暴擊 1.1；霸體中再打折）。
@@ -1604,7 +1607,8 @@ export function animCreature(m, v, dt, t) {
   if (st !== ST.DEAD) {
     if (loco || (st === ST.STRIKE && an === 'charge')) {
       const G = gait(m, T, st === ST.STRIKE ? Math.max(sp, m.run * 1.25) : sp, dt), tv = clamp(m.yv * 0.09, -0.45, 0.45) * G.mv;
-      T.cw += tv * 0.6; T.nw += tv * 0.5; T.hw += tv * 0.5; T.br -= tv * 0.35 * G.g; T.tw -= tv * 1.2; calm = st === ST.IDLE && !v.pose ? 1 - G.mv : 0;
+      const hl = v.tf != null && v.f != null ? clamp(angDiff(v.f, v.tf), -0.7, 0.7) * G.mv : 0;      /* 11-20 F1b：頭先轉（朝向還沒轉到的那一截先由頭頸去看）；逃跑時轉彎側傾加大（往轉彎內側壓）*/
+      T.cw += tv * 0.6; T.nw += tv * 0.5 + hl * 0.25; T.hw += tv * 0.5 + hl * 0.4; T.br -= tv * (st === ST.FLEE ? 0.5 : 0.35) * G.g; T.tw -= tv * 1.2; calm = st === ST.IDLE && !v.pose ? 1 - G.mv : 0;
       if (st === ST.CHASE) { T.np += S.low * 0.8; T.hp -= S.low * 0.5; T.eL = T.eR = 0.7; T.jaw += 0.12 + 0.06 * sin(t * 9 + m.seed); T.mane = 0.5; eyeK = 1.6; tense = 0.5;
         // 被打退後的走位（game.js 的 BACK）：倒退時壓低身子、頭低眼睛盯著、耳朵貼後、齜牙喘氣、尾巴放低；橫著繞圈時身體往圈內斜、頭轉向目標
         if (bk > 0.01) { const pn = sin(t * 15 + m.seed); T.by -= 0.09 * bk; T.bp -= 0.04 * bk; T.np += 0.3 * bk; T.hp -= 0.32 * bk; T.eL = T.eR = 0.7 + 0.3 * bk; T.jaw += (0.22 + 0.1 * pn) * bk; pant = 3 * pn * bk; T.tp -= 0.5 * bk; T.mane = 0.5 + 0.5 * bk; tense = 0.5 + 0.5 * bk; }

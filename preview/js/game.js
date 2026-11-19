@@ -1148,7 +1148,9 @@ function hostSimulate(dt, XS) {      // 0.8：XS＝一組本機額外模擬的�
         if (fd < 2.9 && w.cd <= 0 && Math.abs(angDiff(w.f, Math.atan2(-dx, -dz))) > 2.0) { startMove(w, MOVES.deer_kick, from); break; }
         if (!w.rammed && fd < 8 && w.cd <= 0 && 1 - ledgerSum(key) / w.hpMax < 0.55) { w.rammed = true; startMove(w, MOVES.deer_charge, from); break; }      // 被打到半血以下：回頭用角頂一次再逃
         for (const off of [0, 0.5, -0.5, 1.0, -1.0, 1.6, -1.6, 2.3, -2.3]) { const ax = w.x + Math.sin(a + off) * 2.4, az = w.z + Math.cos(a + off) * 2.4; if (!monBlocked(w.x, w.z, ax, az) && Math.hypot(ax, az) > WORLD.TOWN_R + 6) { a += off; break; } }
-        const sp = Dm.speed * (w.t < 2.5 ? 1 : 0.84); nx += Math.sin(a) * sp * dt; nz += Math.cos(a) * sp * dt; w.f = dampAng(w.f, a, 12, dt); break;
+        /* 11-20 F1b：逃跑方向先平滑（繞開障礙時 a 會一次跳 0.5～1 弧度，身體追不上就像甩尾）；起跑加速 0.3 秒（不再瞬間滿速）；身體還沒轉到跑的方向時速度先打折，朝向 22／秒追上去 */
+        w.fa = w.t <= dt * 1.5 || w.fa == null ? a : dampAng(w.fa, a, 9, dt); const sp0 = Dm.speed * (w.t < 2.5 ? 1 : 0.84), err = Math.abs(angDiff(w.f, w.fa)); w.fsp = w.t <= dt * 1.5 || w.fsp == null ? Math.min(1.5, sp0) : w.fsp + clamp(sp0 - w.fsp, -24 * dt, 24 * dt);
+        const et = clamp((err - 0.35) / 0.85, 0, 1), sp = w.fsp * (1 - 0.4 * et * et * (3 - 2 * et)); nx += Math.sin(w.fa) * sp * dt; nz += Math.cos(w.fa) * sp * dt; w.f = dampAng(w.f, w.fa, 22, dt); break;
       }
       case MST.CHASE: {
         if (!tgt) { w.st = MST.IDLE; w.t = 0; w.wanderT = 0; break; }
@@ -1160,7 +1162,7 @@ function hostSimulate(dt, XS) {      // 0.8：XS＝一組本機額外模擬的�
           else { if (!B.r) B.r = clamp(d, orbitR * 0.8, orbitR + 1.2);
             const sp = Dm.speed * BACK.circV, da = sp * dt / Math.max(2, d), a0 = Math.atan2(w.x - tgt.x, w.z - tgt.z) + B.s * da, rr = d + (B.r - d) * Math.min(1, 3 * dt), ex = tgt.x + Math.sin(a0) * rr, ez = tgt.z + Math.cos(a0) * rr;
             if (monBlocked(w.x, w.z, ex, ez)) { if (!B.flip && B.a < 1.2) { B.flip = 1; B.s = -B.s; } else { w.bo = null; w.cd = 0; } break; }      // 繞到一半被擋：剛開始就往另一邊繞，已經繞了一大段就直接上
-            nx += ex - w.x; nz += ez - w.z; B.a += da; const tan = Math.atan2(ex - w.x, ez - w.z); w.f = dampAng(w.f, toT + angDiff(toT, tan) * 0.4, 8, dt); break; }      // 身體朝前進方向偏一點、頭看著目標（creatures.js 依移動方向轉頭）
+            nx += ex - w.x; nz += ez - w.z; B.a += da; const tan = Math.atan2(ex - w.x, ez - w.z); w.f = dampAng(w.f, toT + angDiff(toT, tan) * 0.65, 12, dt); break; }      // 身體朝前進方向偏一點、頭看著目標（creatures.js 依移動方向轉頭）
         }
         if (w.cd <= 0) {
           // 選招：距離合適、冷卻好了的招式裡挑；身後專用的優先，其次是有冷卻的招牌招式。成群的狼要輪流出手
@@ -1328,12 +1330,14 @@ function updateMonViews(dt, fxp, fzp) {
     const Dm = MON[v.type], ex8 = v.x - fxp, ez8 = v.z - fzp, dist = Math.sqrt(ex8 * ex8 + ez8 * ez8);      /* X12：Math.hypot 在熱迴圈裡慢 */
     if (dist > 125) { if (v.model && v.model.root.visible) { v.model.root.visible = false; if (v.tag) v.tag.el.style.display = 'none'; if (v.tele) { v.tg = null; showTelegraph(v.tele, v, Dm, false); } } v.x = v.tx; v.z = v.tz; v.stT += dt; continue; }
     if (!v.model) { v.model = BB.make(v.type, v.size, v.elite, v) || BA7.make(v.type, v.size, v.elite) || BA8.make(v.type, v.size, v.elite) || makeCreature(v.type, v.size, v.elite); W.scene.add(v.model.root); if (Dm.bk && v.model.S && !v.model.bkDone) { v.model.bkDone = 1; v.model.S = Object.assign({}, v.model.S, { cad: (v.model.S.cad || 1) / Dm.bk }); }      /* 11-20 野獸放大：步頻隨體型降低，世界座標的步幅才跟著放大（本地步幅不變，不會滑步） */
-      v.tag = makeTag(v.elite ? 'mon elite' : Dm.temper === 'timid' || Dm.temper === 'neutral' ? 'mon calm' : 'mon'); v.tag.name.textContent = v.name + '　Lv' + v.lv; v.tele = makeTelegraph(); }
+      v.tag = makeTag(v.elite ? 'mon elite' : Dm.temper === 'timid' || Dm.temper === 'neutral' ? 'mon calm' : 'mon'); v.tag.name.textContent = v.name + '　Lv' + v.lv; v.tele = makeTelegraph(); v.adt = 0.21; }      /* 11-20 F3b：生成當幀一定要跑一次動作（anim08 的蒙皮修正在第一次 anim 才做），不能被遠處降頻跳過、讓沒修的幾何先 render 出去 */
     const px = v.x, pz = v.z, k = v.st === MST.STRIKE ? 30 : 14;
     if (!Net.isHost && !v.awake && v.st === MST.IDLE && !H8.fn.idleView(v, dt)) { v.idleT -= dt; if (v.idleT <= 0) { v.idleT = 3 + Math.random() * 5; const a = Math.random() * TAU, r = Math.random() * 5; v.tx = v.hx + Math.cos(a) * r; v.tz = v.hz + Math.sin(a) * r; v.tf = Math.atan2(v.tx - v.x, v.tz - v.z); } }
     const sm = !Net.isHost && v.awake && v.ib ? sampleAt(v.ib, Net.hostRT, SMB) : null;
     if (sm) { const jd = v.ibp ? Math.hypot(sm.x - v.ibx, sm.z - v.ibz) / Math.max(dt, 0.001) : 0; v.ibx = sm.x; v.ibz = sm.z; v.ibp = true; if (jd > 60) { v.x = sm.x; v.z = sm.z; v.f = sm.f; } else { v.x = damp(v.x, sm.x, FOLLOW_K, dt); v.z = damp(v.z, sm.z, FOLLOW_K, dt); v.f = dampAng(v.f, sm.f, FOLLOW_K, dt); } }      /* F5：野獸（非主控端）走快照插值 */
-    else { v.ibp = false; v.x = damp(v.x, v.tx, k, dt); v.z = damp(v.z, v.tz, k, dt); v.f = dampAng(v.f, v.tf, 14, dt); }
+    else { v.ibp = false; v.x = damp(v.x, v.tx, k, dt); v.z = damp(v.z, v.tz, k, dt);
+      { let tf = v.tf, kf = 14; if (v.st === MST.FLEE) { const ex = v.tx - v.x, ez = v.tz - v.z; if (ex * ex + ez * ez > 0.04 && v.speed > 2) { tf = Math.atan2(ex, ez); kf = 22; } }      /* 11-20 F1b：逃跑時身體直接對著「實際在跑的方向」（模擬的朝向慢半拍，斜跑就像甩尾）*/
+        v.f = dampAng(v.f, tf, kf, dt); } }
     v.speed = damp(v.speed, Math.hypot(v.x - px, v.z - pz) / Math.max(dt, 0.001), 10, dt); v.stT += dt; v.flash = Math.max(0, v.flash - rdt * 6.5);      // 閃光照真實時間退：停頓的前一兩幀亮一下，之後就看得到挨打的姿勢
     const y = Hgt(v.x, v.z); let ox = 0, oz = 0; if (v.shk > 0) { v.shk = Math.max(0, v.shk - rdt); const a = v.shkA * Math.min(1, v.shk / 0.06) * Math.sin(rclock * 88); ox = v.shx * a; oz = v.shz * a; }      // 命中停頓中，挨打的野獸沿受力方向顫動
     { let la = 0; if (v.st === MST.CHASE) { let bd = 14, p = null; const see = o => { if (o.alive === false) return; const d = Math.hypot(o.x - v.x, o.z - v.z); if (d < bd) { bd = d; p = o; } }; see(me); for (const r of remotes.values()) see(r); if (p) la = clamp(angDiff(v.f, Math.atan2(p.x - v.x, p.z - v.z)), -1.1, 1.1); } v.look = damp(v.look || 0, la, 6, dt); }      // 繞圈時身體朝前進方向、頭看著最近的玩家（每個人各自算，只是畫面）

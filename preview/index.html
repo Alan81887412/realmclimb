@@ -551,7 +551,10 @@ body.talking #party,body.talking #notice,body.talking #invite{opacity:0!importan
 #i11card .i11cardin{width:min(920px,86vw);text-align:center} #i11card .i11kick{margin-bottom:clamp(14px,3vh,34px);font-family:var(--font-display);font-size:clamp(14px,1.7vh,19px);letter-spacing:.7em;text-indent:.7em;color:var(--brass)}
 #i11card .i11p{margin:.5em 0;font-family:var(--font-display);font-size:clamp(26px,3.4vh,42px);line-height:1.75;letter-spacing:.1em;color:#f8f1de;text-shadow:0 2px 8px #000;opacity:0;transform:translateY(10px);transition:opacity 1.1s,transform 1.1s,color 1.1s} #i11card .i11p.on{opacity:1;transform:none} #i11card .i11p.on:not(:last-child){opacity:.55} #i11card .i11p.on:last-child:not(:first-child){color:var(--brass-light)}
 #i11card .i11cardhint{position:fixed;left:0;right:0;bottom:26px;text-align:center;font-size:13px;letter-spacing:.14em;color:var(--ink-faint)} #i11card .i11skip{bottom:20px;right:26px}
-body.talking #i11 .i11box,body.talking #i11 .i11band,body.talking #i11 .i11skip,body.talking #i11card,body:not(.playing) #i11,body:not(.playing) #i11card{opacity:0!important;pointer-events:none!important}
+body.talking #i11 .i11box,body.talking #i11 .i11band,body.talking #i11 .i11skip,body.talking #i11card,body:not(.playing) #i11,body:not(.playing):not(.introhold) #i11card{opacity:0!important;pointer-events:none!important}
+/* 11-20：暗幕（開場旁白卡播放時蓋住整個遊戲畫面，播完才淡出）；字幕顯示中，互動提示（按 E 與某人交談）讓位——字幕在技能欄上方、提示也在同一帶，疊在一起，所以字幕期間隱藏（按 E 照樣能交談，字幕結束提示就回來） */
+#i11cur{position:fixed;inset:0;z-index:25;background:#030403;display:none;pointer-events:none} body.introhold #i11cur{pointer-events:auto}
+body.i11sub #prompt{opacity:0!important;transition:opacity .12s}
 @media (max-width:1180px){#i11.mb .i11box{width:calc(100vw - 80px);min-width:0}}
 </style>
 </head>

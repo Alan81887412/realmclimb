@@ -255,7 +255,7 @@ function fleeIbex(w, X, s) {
   s.cliffing = false;      // 沒有崖可上：一般逃跑
   let a = Math.atan2(w.x - src.x, w.z - src.z);
   for (const off of [0, 0.5, -0.5, 1.0, -1.0, 1.6, -1.6, 2.3, -2.3]) { const ax = w.x + sin(a + off) * 2.4, az = w.z + cos(a + off) * 2.4; if (!monBlocked(w.x, w.z, ax, az) && hyp(ax, az) > 48) { a += off; break; } }
-  const sp = D.speed * (w.t < 2.5 ? 1 : 0.84); X.nx += sin(a) * sp * dt; X.nz += cos(a) * sp * dt; w.f = dampAng(w.f, a, 12, dt); return true;
+  const sp = D.speed * (w.t < 2.5 ? 1 : 0.84); X.nx += sin(a) * sp * dt; X.nz += cos(a) * sp * dt; w.f = dampAng(w.f, a, 22, dt); return true;
 }
 const hypotUnit = (x, z) => { const l = hyp(x, z) || 1; return { x: x / l, z: z / l }; };
 function ledgeTick(w, X, s) {

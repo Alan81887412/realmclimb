@@ -14,8 +14,30 @@
      不是行走狀態（出招、受擊、死亡、做特別姿勢）：不接手，原本的動作照舊；之後回到行走，從當下位置接續。 */
 import * as THREE from './three.bundle.js';
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x)), sm = (a, b, x) => { x = clamp((x - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
-const GO = [-0.04, 0.22, 0, 0.22];      /* 同 anim08 gallopShift：野牛奔跑的相位差 */
 const LOG = ev => { if (typeof window !== 'undefined' && window.__g8log) window.__g8log.push(ev.concat([window.__g8i])); };
+/* 四條腿的步法相位（11-20 F1）：腿 0 左前、1 右前、2 左後、3 右後（模型 +x ＝動物左側）；相位 q＝m.phase＋off，q 過 duty 起進入抬腳，q＝0 為落地。
+   落地順序（以 m.phase 增加的方向）：
+     走路 lat：左後 → 左前 → 右後 → 右前（側向序列，同側後腳比前腳早 1/4 週期落地；牛、羊、鹿、貓科、犬科、熊、豬、野豬、箭豬、岩羊）
+     走路 diag：左後 → 右前 → 右後 → 左前（對角序列，靈長類的指背行走；猴、猩猩、小猩猩）
+     走路 croc：鱷魚的爬行：對角成對，同一對的後腳比前腳晚 0.08 圈落地（對角腿幾乎一起動，同側前後腳差 1/2）
+     小跑：對角成對（左前＋右後、右前＋左後），同側前後差 1/2
+     奔跑：橫向奔馳（後腳一對、前腳一對各錯開 0.12，同側前後差 1/2）；鱷魚奔跑仍用對角（快速小跑）
+   走路→小跑的過渡是線性混合，兩端的同側相位差都不在 0 附近（0.25 → 0.5），中間不會經過 pace（同側一起動）。 */
+const WALK_OFF = { lat: [0.75, 1.25, 0, 0.5], diag: [0.25, 0.75, 0, 0.5], croc: [0.5, 1.08, 0, 0.42] }, TROT_OFF = [0.5, 1, 0, 0.5];
+/* 奔跑步法（11-20 F1b）：舊的橫向奔馳左右腳只差 0.12 圈（步頻 2.5～3 Hz 時只差 40～50 毫秒），從正面看前腳成對落地、後腳成對蹬，像兔子跳。
+   mode 'gal'：橫向奔馳，左右相差 d 圈（腿 0 左前 .5、1 右前 .5+d、2 左後 0、3 右後 d）；mode 'trot'：快速小跑（對角成對，左前＋右後、右前＋左後，左右前腳差 0.5 圈）。 */
+export const RUN = { mode: 'trot', d: 0.25 };
+export const runOff = kind => kind === 'croc' || RUN.mode === 'trot' ? TROT_OFF : [0.5, 0.5 + RUN.d, 0, RUN.d];
+export const WALK_LATERAL = true;      /* 一個開關：true＝一般四足走側向四拍；false＝全部維持舊的對角序列（只保留脊椎／側傾／尾巴跟腳同步與鱷魚對角成對）*/
+export const gaitKind = type => type === 'ape' || type === 'monkey' ? 'diag' : type === 'croc' ? 'croc' : WALK_LATERAL ? 'lat' : 'diag';
+export function legQ(m, ph, wW, wT, wG, gallop, q = [0, 0, 0, 0]) {
+  const kind = m.gk || (m.gk = gaitKind(m.type)), W = WALK_OFF[kind], G = runOff(kind);
+  for (let i = 0; i < 4; i++) q[i] = ((ph + W[i] * wW + TROT_OFF[i] * wT + G[i] * wG ) % 1 + 1) % 1;
+  return q;
+}
+/* 腳掌前後位置（−0.5 後 … +0.5 前，單位＝步幅）與著地權重（0 抬起 … 1 著地，邊緣各 0.05 圈平滑）：脊椎扭轉、身體側傾、尾巴都由「這四隻腳此刻在哪」算出來，和腳永遠同步 */
+export const legU = (q, duty) => q < duty ? 0.5 - q / duty : -0.5 + ((s) => s * s * (3 - 2 * s))((q - duty) / (1 - duty));
+export const legSt = (q, duty) => q < duty ? sm(0, 0.05, q) * (1 - sm(duty - 0.05, duty, q)) : 0;
 const DTMAX = 0.06, MINLIFT = 0.07, ROLLK = 0.4, KP = 0.955, KR = 0.975, FMAX = 9, MOVE_ON = 0.3, MOVE_OFF = 0.2, TST = 0.26;
 const _M = new THREE.Matrix4(), _Mi = new THREE.Matrix4(), _v = new THREE.Vector3();
 
@@ -44,8 +66,7 @@ export function gaitPre(m, a, sp, dt, loco) {
   if (G.moving ? sp < MOVE_OFF : sp > MOVE_ON) G.moving = !G.moving; if (!loco) G.moving = false;
   const Ls0 = Math.min(Lmax, G.cap), f = clamp(Math.max(f0, sp * duty / Ls0), 0.1, FMAX), Ls = sp * duty / f;
   m.f8 = G.moving ? f : 0;
-  const ph = m.phase, q = [0, 0, 0, 0];
-  for (let i = 0; i < 4; i++) { const off = i === 0 ? 0.25 * wW + 0.5 * wT + 0.5 * wG : i === 1 ? 0.75 * wW + wT + 0.62 * wG : i === 2 ? 0 : 0.5 * wW + 0.5 * wT + 0.12 * wG; q[i] = ((ph + off + (a.P.gallop ? GO[i] * wG : 0)) % 1 + 1) % 1; }
+  const q = legQ(m, m.phase, wW, wT, wG, a.P.gallop);
   return { duty, f, Ls, q, lift: Math.max(S.lift * (0.55 * wW + 0.85 * wT + 1.2 * wG), MINLIFT / (m.root.scale.x || 1)) };      /* 不管多小隻，腳至少抬離地面 7 公分（草、石頭、地面起伏） */
 }
 
@@ -112,5 +133,6 @@ export function gaitPost(m, a, v, dt, sp, loco, pre) {
     const th = L[o + 7], ct = Math.cos(th), st = Math.sin(th), ax = rx - l.f0.x, ay = ry - (l.f0.y * ct - l.f0.z * st), az = rz - (l.f0.y * st + l.f0.z * ct), hp = hips[l.i];      /* 踝＝腳掌點減去腳掌俯仰後的 f0 */
     const dh = Math.hypot(ax - hp[0], az - hp[2]), R = KR * l.Ll, reach = Math.sqrt(Math.max(0, R * R - dh * dh)); const nd = hp[1] - ay - reach; l.nd = nd; need = Math.max(need, nd); (G.dbg || (G.dbg = []))[l.i] = [+nd.toFixed(3), +dh.toFixed(3), +(hp[1] - ay).toFixed(3), +(l.Ll).toFixed(3)];
   }
-  need = clamp(need, 0, G.cmax * 1.7) * w; G.cs = dt > 0 ? Math.max(need, G.cs * Math.exp(-14 * dt)) : Math.max(need, G.cs); body.position.y -= G.cs;
+  need = clamp(need, 0, G.cmax * 1.7) * w; G.cs = dt > 0 ? Math.max(need, G.cs * Math.exp(-14 * dt)) : Math.max(need, G.cs);
+  body.position.y -= G.cs;
 }

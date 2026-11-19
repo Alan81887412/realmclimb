@@ -839,12 +839,24 @@ async function enter() {
   $('start').classList.add('out'); setTimeout(() => { $('start').hidden = true; }, 700);
   if (Store.needCreator) { Store.needCreator = false; openCreator(true, begin); } else begin();
 }
+/* 11-20：開場旁白卡播放時，遊戲先「扣住」——暗幕蓋住整個畫面、角色不能動、還沒開始；旁白卡播完或被跳過才放出來（淡入、開始操控、出現區域名稱） */
+let introHold = false, holdIdle = 0;
+function holdOpen() {
+  if (!introHold) return; introHold = false;
+  setTimeout(() => {
+    input.started = true; document.body.classList.add('playing'); document.body.classList.remove('introhold'); ui.dirty = true; lastZone = ''; $('scene').focus(); lock();
+    I11.setCurtain(false, 1.8);
+  }, 650);      /* 旁白卡本身 0.9 秒淡出，先讓畫面全黑一下再亮起 */
+}
 function begin() {
-  input.started = true; document.body.classList.add('playing'); $('scene').focus(); ui.dirty = true; lastZone = '';
+  const first = !seenIntro(), hold = first && I11.MODE !== 'off' && I11.hasCard() && LORE.intro.length > 0;
+  if (hold) { introHold = true; holdIdle = 0; document.body.classList.add('introhold'); I11.setCurtain(true); I11.setOnEnd(holdOpen); }
+  else { input.started = true; document.body.classList.add('playing'); }
+  $('scene').focus(); ui.dirty = true; lastZone = '';
   log('歡迎來到鐵環城。城門外就是風吹草原。'); log(`${keyOf('char')} 配點，${keyOf('bag')} 背包，${keyOf('quest')} 任務，${keyOf('skills')} 技能，${keyOf('map')} 地圖，${keyOf('camera')} 切換視角，Esc 設定（可以改按鍵）。`); log(`戰鬥：${keyOf('attack')} 輕攻擊，${keyOf('heavy')} 重攻擊（按住蓄力），${keyOf('guard')} 按住格擋，${keyOf('dodge')} 閃避，${keyOf('sprint')} 衝刺，${keyOf('lock')} 鎖定目標。野獸出招前地上會有紅色預警。`);
-  if (input.cam.mode === 'tps') log('背後視角：點一下畫面後用滑鼠轉動視角。'); lock();
+  if (input.cam.mode === 'tps') log('背後視角：點一下畫面後用滑鼠轉動視角。'); if (!hold) lock();
   if (P.pts > 0) toast(`有 ${P.pts} 點能力點數還沒分配，按 ${keyOf('char')} 開啟角色面板。`);
-  if (!seenIntro()) narrate(I11.MODE === 'off' ? LORE.intro : LORE.intro.map(t => ({ t, k: 'intro' })));
+  if (first) narrate(I11.MODE === 'off' ? LORE.intro : LORE.intro.map(t => ({ t, k: 'intro' })));
 }
 
 /* ============================== 輸入 ============================== */
@@ -981,6 +993,7 @@ export function updateUI(dt) {
   for (let i = noticeQ.length - 1; i >= 0; i--) { const q = noticeQ[i]; if ((q.t -= dt) <= 0.6) q.p.classList.add('out'); if (q.t <= 0) { q.p.remove(); noticeQ.splice(i, 1); if (!noticeQ.length) document.body.classList.remove('noticing'); } }      // 0.6 公告
   if (inv) { const v = inviteIn(); if (v !== inv) showInvite(v); else $('invFill').style.transform = `scaleX(${clamp(v.t / 30, 0, 1)})`; }
   if (tipT > 0 && !isOpen('map') && !UI8.holdTip()) { /* 0.8：試煉／對決中提示框先停（ui08h 把它藏起來），結束再接著倒數 */ tipT -= dt; if (tipQ.length && tipT <= 4) showTip(tipQ.shift()); else if (tipT <= 0) $('tip').classList.remove('on'); }
+  if (!input.started && introHold) { I11.tick(dt); if (!I11.active() && !narrQ.length && (holdIdle += dt) > 3) holdOpen(); else if (I11.active() || narrQ.length) holdIdle = 0; return; }      /* 暗幕中只跑旁白卡；保險：卡片沒東西 3 秒就放行 */
   if (!input.started) return;
   if (dlg && (!me.alive || me.lastCombat > dlg.t0 || Math.hypot(dlg.n.x - me.x, dlg.n.z - me.z) > 6)) endTalk();      // 走遠、被打、倒下都會結束交談
   if (I11.MODE !== 'off') I11.tick(dt); else if (narrT > 0) { narrT -= dt; if (narrT <= 0) { $('narr').classList.remove('on'); narrGap = 0.8; } } else if (narrQ.length && !dlg && bannerT <= 0 && (narrGap -= dt) <= 0) { const it = narrQ.shift(), t = it.t || it, e = $('narr'); e.textContent = t; e.classList.add('on'); narrT = 2.8 + t.length * 0.12; if (!it.again) addLine(p => { p.textContent = '〔' + t + '〕'; }, 'sys old'); }
