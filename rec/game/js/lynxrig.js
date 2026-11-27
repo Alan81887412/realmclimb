@@ -1299,7 +1299,7 @@ function tugA(T, dt) { const rch = kf([[0, 0], [0.75, 1, 's'], [2.6, 1], [3, 0, 
   for (const L of LEGS) footC(L, ctl, L.kind === 'F' && rch > 0.02 ? { planted: false, off: [-Math.sign(L.anchor.x) * 0.04 * rch, 0.44 * rch + 0.08 * pl, 0.30 * rch * (1 - pl) + 0.03 * pl], pitch: 0.5 * rch } : { hold: pl > 0.2 });
   tail(k => Math.sin(st.t * 9 - k * 0.6) * 0.15, -0.1 * pl, dt); }
 /* 蹲坐（樹上待機）：後腿蹲下、屁股落低、前半身立起，前肢撐在身前；每 9 秒一輪小動作：左前肢抬起搔頭（頭往那邊歪）→ 張望左右 → 尾巴慢慢擺 */
-function sitA(t, dt) { const k = sm(0, 0.7, t), P = t % 6, on = sm(0.6, 1.0, t), scr = kf([[0, 0], [0.8, 0], [1.2, 1, 's'], [2.6, 1], [3.0, 0, 's'], [6, 0]], P) * on, sc2 = scr * (0.5 + 0.5 * Math.sin(t * 13)),      /* 11-27 Q1 審查：6 秒一輪；搔頭換成靠鏡頭那一側的右手（左手在遠側看不到）；整段一直有呼吸、尾巴、頭小動作，不像凍住 */
+function sitA(t, dt) { const k = sm(0, 0.7, t), P = t % 6, on = sm(0.6, 1.0, t), scr = kf([[0, 0], [0.8, 0], [1.3, 1, 's'], [2.0, 1], [2.5, 0, 's'], [6, 0]], P) * on      /* 11-27 M1：舉手／放下各 0.5 秒（原本 0.4 秒，手一格移 23 公分）、搔 0.7 秒 */, sc2 = scr * (0.5 + 0.5 * Math.sin(t * 13)),      /* 11-27 Q1 審查：6 秒一輪；搔頭換成靠鏡頭那一側的右手（左手在遠側看不到）；整段一直有呼吸、尾巴、頭小動作，不像凍住 */
     look = kf([[0, 0], [3.2, 0], [3.8, 30, 's'], [4.4, 30], [5.0, -26, 's'], [5.5, -26], [6, 0, 's']], P) * on, br = Math.sin(t * 2.6) * k;
   root.position.z = -0.08 * k;
   poseBody({ y: -0.32 * k + 0.006 * br, pitch: 34 * k + 1.2 * br, chest: 6 * k + 2 * br, neckP: -24 * k - 6 * scr + 3 * sc2 + 3 * Math.sin(t * 0.9) * k, neckY: look + 14 * scr + 5 * Math.sin(t * 0.7) * k, jaw: 3 * Math.max(0, Math.sin(t * 1.3)) * k, ears: 0 });
@@ -1338,10 +1338,19 @@ function broarA(T, dt) { const { right } = axes(), sh = Math.sin(st.t * 22) * kf
   const lf = kf([[0, 0], [0.2, 0], [0.62, 1, 's'], [0.72, 1], [1.05, 0, 's'], [3, 0]], T);      /* 前掌踩回地面主要在蓄力尾段做（約 10 格），出招一開始就落地 */
   for (const L of LEGS) footC(L, ctl, L.kind === 'F' && lf > 0.02 ? { planted: false, off: [0, 0.16 * lf, -0.03 * lf] } : { hold: true });      /* 11-27 Q1 審查：咆哮時後腳釘住不碎步 */
   tail(k => Math.sin(st.t * 8 - k * 0.7) * 0.08, 0.2, dt); }
+/* 11-27 R1 棕熊威嚇噴氣（OPT.bearM 才會呼叫）：審核「看不到噴氣」——鼻口前噴出幾團淡白色氣團（往前下方散開、變大、0.7 秒內淡掉）。氣團掛在 stage 的上一層（世界座標，不跟著頭轉），不影響骨架、外框量測 */
+function bPuff(n) { const P = stage.parent; if (!P) return; if (!ctl.pf) ctl.pf = []; const { fwd, up, right } = axes(), h = HREF, j = wp(HEAD.jaw);
+  for (let i = 0; i < n; i++) { let m = ctl.pf.find(q => !q.visible); if (!m) { if (ctl.pf.length >= 8) return; m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xf0f2f4, transparent: true, opacity: 0, depthWrite: false })); m.renderOrder = 5; m.frustumCulled = false; P.add(m); ctl.pf.push(m); }
+    const sd = i % 2 ? 1 : -1, pl = j.clone().addScaledVector(fwd, 0.17 * h).addScaledVector(up, 0.03 * h).addScaledVector(right, sd * 0.035 * h), vl = pl.clone().addScaledVector(fwd, 1.0 * h).addScaledVector(up, -0.32 * h).addScaledVector(right, sd * 0.28 * h);
+    stage.updateMatrixWorld(true); const pw = stage.localToWorld(pl.clone()), vw = stage.localToWorld(vl).sub(pw); m.visible = true; m.material.opacity = 0; Object.assign(m.userData, { t: -0.045 * Math.floor(i / 2), p: pw, v: vw, s: stage.getWorldScale(V()).x * h }); } }
+function bPuffTick(dt) { const P = stage.parent; if (!P || !ctl.pf) return; P.updateMatrixWorld(true); const ps = P.getWorldScale(V()).x || 1;
+  for (const m of ctl.pf) { if (!m.visible) continue; const U = m.userData; U.t += dt; if (U.t > 0.7) { m.visible = false; continue; } const u = Math.max(0, U.t) / 0.7; if (U.t > 0) U.p.addScaledVector(U.v, dt * (1 - 0.75 * u));
+    m.position.copy(P.worldToLocal(U.p.clone())); m.scale.setScalar((0.045 + 0.16 * Math.sqrt(u)) * U.s / ps); m.material.opacity = U.t <= 0 ? 0 : 0.55 * (1 - u) * (1 - u) * Math.min(1, U.t / 0.06); } }
 /* 11-27 Q1 棕熊威嚇（OPT.bearM，st 8）：前半身壓低、頭低著左右擺、張嘴噴氣，每 2.4 秒一隻前掌抬起重重跺地（左右輪流），身體跟著頓一下 */
 function bwarnA(t, dt) { const k = sm(0, 0.45, t), P = t % 1.4, sd = Math.floor(t / 1.4) % 2 ? 1 : -1, st0 = kf([[0, 0], [0.2, 0], [0.5, 1, 'o'], [0.62, 1], [0.78, 0, 'i'], [1.4, 0]], P), hit = kf([[0, 0], [0.78, 0], [0.86, 1, 's'], [1.2, 0, 's'], [1.4, 0]], P) * k, br = Math.sin(t * 4.2), sn = kf([[0, 0], [0.95, 0], [1.05, 1, 's'], [1.25, 0, 's'], [1.4, 0]], P) * k;      /* 11-27 Q1 審查：每 1.4 秒左右輪流跺一次（抬得快、落得重）；跺完噴一口氣（頭往上一頓、張嘴、胸口收）；頓一下拉長到約 3 格 */
   root.position.z = -0.08 * k + 0.03 * hit;
   poseBody({ y: -0.11 * k - 0.03 * hit + 0.008 * br * k, pitch: -7 * k + 2.5 * hit, chest: -4 * k + 2 * br * k - 4 * sn, neckP: -16 * k + 6 * hit + 8 * sn, neckY: 24 * Math.sin(t * 2.3) * k, jaw: (18 + 6 * Math.max(0, br)) * k + 10 * hit + 16 * sn, ears: -36 * k });
+  { const P0 = ctl.pfP; ctl.pfP = P; if (P0 != null && P0 < 0.95 && P >= 0.95 && k > 0.5) bPuff(4); }      /* 11-27 R1：噴氣那一下（P 0.95）噴出氣團 */
   for (const L of LEGS) footC(L, ctl, L.kind === 'F' && Math.sign(L.anchor.x) === sd && st0 > 0.02 ? { planted: false, off: [0, 0.3 * st0 * k, 0.06 * st0 * k], pitch: -0.25 * st0 } : { hold: true });
   tail(i => Math.sin(t * 4 - i * 0.7) * 0.12, 0.25, dt); }
 /* 11-27 野牛審核（甩角：角插進鬃毛、前腳亂踏）：OPT.hkUp 0.2（頭往上甩少一點）、hkY 0.8（改成多往側邊甩）、hkP 0.5（前半身抬一半）、hkF 0.35（前腳只離地約 4 公分） */
@@ -1522,6 +1531,7 @@ function update(o) { const dt = Math.min(0.05, Math.max(0, o.dt || 0)); st.t += 
   if (OPT.anat) { if (!ctl.llQ) ctl.llQ = bones.map(() => new THREE.Quaternion()); for (let i = 0; i < bones.length; i++) ctl.llQ[i].copy(ctl.lastQ[i]); ctl.llT = ctl.lqT; }      /* 上上格（擺盪加速度限制用） */
   for (let i = 0; i < bones.length; i++) { ctl.lastQ[i].copy(bones[i].quaternion); ctl.lastP[i].copy(bones[i].position); } ctl.lqT = st.t; ctl.lastR.copy(root.position); ctl.lastRq.copy(root.quaternion);
   root.updateMatrixWorld(true);
+  if (OPT.bearM && ctl.pf) bPuffTick(dt);      /* 11-27 R1 棕熊噴氣氣團（換模式也會照樣淡掉，不會停在空中） */
   if (mode === 'dead') SEC.reset(); else { SEC.apply(dt, mode); root.updateMatrixWorld(true); tailClamp(); tailGround(); tailClamp(); } TLIM = TL0;
   ctl.pm.copy(stage.matrixWorld); ctl.pmOk = true; }      /* 嚎叫時晃動層照常作用 */
 const _q = Q(), _v = V();
