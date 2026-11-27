@@ -33,7 +33,8 @@ with sync_playwright() as p:
     page.goto(f'http://127.0.0.1:{port}/index.html' + os.environ.get('QS', '')); page.wait_for_function('window.__game || document.getElementById("fatal")', timeout=300000)
     page.fill('#nameIn', '測試員'); page.click('#enterBtn'); page.wait_for_function('__game.input.creator === true'); page.click('#crDone'); page.wait_for_function('__game.input.started === true')
     print('setup', page.evaluate(SETUP, [typ, elite]), flush=True)
-    adv = lambda: page.evaluate('window.__adv()'); J = page.evaluate
+    page.evaluate("async () => { window.__fx = (await import('/js/actors.js')).fx; window.__hsM = 0; }")      # 11-27 N1：記下命中停頓（hitstop）有沒有發生，YAW 探針印出（驗證 hsR）
+    adv = lambda: page.evaluate('() => { const h = window.__fx ? window.__fx.hitstop : 0; window.__hsM = Math.max(window.__hsM || 0, h); return window.__adv(); }'); J = page.evaluate
     J(RESET)
     for i in range(240): adv()
     def settle(n=90):
@@ -50,7 +51,7 @@ with sync_playwright() as p:
             if i % every == 0:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
                 if os.environ.get('SPD'): print('SP', name, k, r.get('st'), r.get('sp'), r.get('run'), r.get('sc'), flush=True)
-                if os.environ.get('YAW'): print('YW', name, k, J("JSON.stringify((() => { const X = __v.model.lx, T = X.root.quaternion.constructor, V3 = X.root.position.constructor, y = o => { const q = new T(); o.getWorldQuaternion(q); const f = new V3(0, 0, 1).applyQuaternion(q); return +(Math.atan2(f.x, f.z) * 57.3).toFixed(1); }; return [__w.st, +(__w.t||0).toFixed(2), y(X.stage), X.stage.parent ? y(X.stage.parent) : null, y(X.root), X.ctl.vyW != null ? +(X.ctl.vyW * 57.3).toFixed(1) : null, X.ctl.mode, X.ctl.sT != null ? +X.ctl.sT.toFixed(3) : null, X.ctl.hkT != null ? +X.ctl.hkT.toFixed(3) : null, +((X.INR && X.INR.dt) || 0).toFixed(4)]; })())"), flush=True)
+                if os.environ.get('YAW'): print('YW', name, k, J("JSON.stringify((() => { const X = __v.model.lx, T = X.root.quaternion.constructor, V3 = X.root.position.constructor, y = o => { const q = new T(); o.getWorldQuaternion(q); const f = new V3(0, 0, 1).applyQuaternion(q); return +(Math.atan2(f.x, f.z) * 57.3).toFixed(1); }; return [__w.st, +(__w.t||0).toFixed(2), y(X.stage), X.stage.parent ? y(X.stage.parent) : null, y(X.root), X.ctl.vyW != null ? +(X.ctl.vyW * 57.3).toFixed(1) : null, X.ctl.mode, X.ctl.sT != null ? +X.ctl.sT.toFixed(3) : null, X.ctl.hkT != null ? +X.ctl.hkT.toFixed(3) : null, +((X.INR && X.INR.dt) || 0).toFixed(4), +(window.__hsM || 0).toFixed(3) + (window.__hsM = 0), +(window.__rdt || 0).toFixed(4), +((X.ctl && X.ctl.vg) || 0).toFixed(2)]; })())"), flush=True)
                 if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
                 if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
                 grab(page, name, k); k += 1
