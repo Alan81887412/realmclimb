@@ -1,1 +1,1 @@
-[{"name":"me_bison_o_1725","script":"seqN.py","animal":"bison","env":{"QS":"?bison=20","NOFADE":"1","FIXCAM":"1","SC":"o","LD":"1","YAW":"1"}},{"name":"me_bison_a_1725","script":"seqN.py","animal":"bison","env":{"QS":"?bison=20","NOFADE":"1","FIXCAM":"1","SC":"a","LD":"1"}},{"name":"me_bison_rw_1725","script":"seqN.py","animal":"bison","env":{"QS":"?bison=20","NOFADE":"1","FIXCAM":"1","SC":"r,w","LD":"1"}}]
+[{"name":"me_bison_g_1730","script":"seqN.py","animal":"bison","env":{"QS":"?bison=20","NOFADE":"1","FIXCAM":"1","SC":"g","LD":"1"}}]
