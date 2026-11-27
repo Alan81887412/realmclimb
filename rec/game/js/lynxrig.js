@@ -1180,7 +1180,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
     if (s.s === 'F' || wF >= 1) { s.s = 'F'; S.hp[L.id] = wp(L.h); continue; }
     const qF = L.ch.map(b => b.quaternion.clone());
     for (const b of L.ch) b.quaternion.copy(rest.get(b).q); L.s.position.copy(rest.get(L.s).p); root.updateMatrixWorld(true);
-    if (s.s === 'L') { const u = clamp((t - s.t0) / 0.15, 0, 1), G = V(s.P1.x, HY, s.P1.z); solveLeg(L, her(s.P0, V(), G, V(), u, 0.15), 0, 0, 1, {}); if (u >= 1) s.s = 'P'; }
+    if (s.s === 'L') { const D = s.D ??= clamp(s.P0.distanceTo(V(s.P1.x, HY, s.P1.z)) / 0.5, 0.15, 0.35), u = clamp((t - s.t0) / D, 0, 1), G = V(s.P1.x, HY, s.P1.z); solveLeg(L, her(s.P0, V(), G, V(), u, D), 0, 0, 1, {});      /* 放下的時間照距離（每秒最多約 0.5×1.5 倍速），遠的腳不一格甩過去 */ if (u >= 1) s.s = 'P'; }
     else if (s.s === 'P') { const q = ctLocal(L); q.y = ctGnd(L, q) + HY; solveLeg(L, q, 0, 0, 1, { gr: true, g: c.g, sp: c.sp, sl: c.sl, sr: c.sr }); }
     else { const u = clamp((t - s.t0) / HR, 0, 1), hp = wp(L.s), dm = (K.rt ?? 0.6) * L.dMax, dy = Math.max(0, hp.y - HY), G = V(hp.x, HY, hp.z + Math.sqrt(Math.max(0, dm * dm - dy * dy)));      /* 交接目標：髖正下方偏前、腿長剛好 rt 倍的地面點（後蹄沿低弧收到身體下面），三次 Hermite 保留離開時的速度 */
       solveLeg(L, her(s.P0, s.V0, G, V(), u, HR), 0, 0, 1, {}); if (wF > 0) { L.ch.forEach((b, i) => b.quaternion.slerp(qF[i], wF)); root.updateMatrixWorld(true); } }
