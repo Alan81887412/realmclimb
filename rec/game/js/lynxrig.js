@@ -1537,7 +1537,7 @@ function dchV(o, dt) { const K = OPT.dch === true ? {} : OPT.dch, par = stage.pa
   const gap = g - C.x, vM = K.v ?? 12, ab = K.ab ?? 9; let sd;
   if (ram && i === 0) sd = lead ? (K.vl ?? 2.5) : 0;
   else { sd = clamp(Math.max(0, gs) + gap / (K.tc ?? 0.3), -1.2, vM); const sb = Math.sqrt(2 * ab * Math.abs(gap)); sd = gap >= 0 ? Math.min(sd, sb + Math.max(0, gs)) : Math.max(sd, -sb); }
-  let aD = clamp((sd - C.s) / (K.ta ?? 0.08), -(K.ad ?? 14), K.aa ?? 22); const nC = LEGS.filter(L => L.c && L.c.ok && !L.c.air).length; if (nC === 0 && gap > -0.2) aD *= K.fk ?? 0.15;      /* 外觀速度是世界公尺／秒；步態速度要換成 stage 尺度（÷INR.sW） */
+  let aD = clamp((sd - C.s) / (K.ta ?? 0.08), -(K.ad ?? 14), K.aa ?? 22); const nC = LEGS.filter(L => L.c && L.c.ok && !L.c.air).length; if (nC === 0 && aD < 0 && gap > -0.2 && C.s * C.s / (2 * Math.max(0.05, gap)) < 0.6 * (K.ad ?? 14)) aD *= K.fk ?? 0.15;      /* 只有減速受腳踩地影響（煞車靠蹄）；快來不及停（需要的減速度 ≥ 0.6×ad）就照煞，不衝過頭 */      /* 外觀速度是世界公尺／秒；步態速度要換成 stage 尺度（÷INR.sW） */
   const J = (K.j ?? 160) * dt; C.a += clamp(aD - C.a, -J, J); C.s += C.a * dt; if (gap >= 0 && sd >= 0 && C.s < 0 && gs <= 0) { C.s = 0; C.a = 0; } C.x += C.s * dt;
   const kl = 1 - Math.exp(-dt / 0.12); C.eX += (ex - C.eX) * kl; C.eZ += (ez - C.eZ) * kl;
   C.W.set(C.O.x + C.d.x * C.x + C.eX, P.y, C.O.z + C.d.z * C.x + C.eZ); stage.position.copy(par.worldToLocal(C.W.clone()));
