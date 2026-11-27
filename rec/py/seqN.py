@@ -82,7 +82,20 @@ with sync_playwright() as p:
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force regore', J(FORCEC, ['bison_regore', -9.0, 1.0, 1.0, 1.1, None, 2])); run('q_regore', 420); J('window.__fyFix = null')
     if 'o' in SC: settle(); print('force hook', J(FORCEC, ['bison_hook', 2.6, 0.72, 0.25, 0.75, None, 2])); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); run('o_hook', 260); J('window.__fyFix = null')      # 11-27 探針：甩角後轉身其實每秒約 110°（有限速），是鏡頭跟著遊戲朝向（一格轉 20°）在甩，看起來像牛急轉；鏡頭固定在世界
     if 'k' in SC: settle(); print('force buck', J(FORCEC, ['bison_buck', -2.6, 0.5, 0.22, 0.6, None, 2])); run('k_buck', 200)
-    if 'z' in SC: settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
+    if 'z' in SC and not os.environ.get('ZB'): settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
+    if 'z' in SC and os.environ.get('ZB'):      # 11-27 N4：ZB=1 走遊戲真正的撞暈（beastai07.bump→setDaze：暈的 2.6 秒遊戲不移動野牛）；原本強制 RECOVER＋目標 6 公尺，暈的時候遊戲 AI 還在把牛往前推（每格 3～10cm＝暈著走路）。暈完原地站穩（不接追擊），錄到動作停住
+        settle()
+        for _ in range(int(os.environ.get('IHOLD', '150'))): J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }"); adv()
+        os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y')
+        print('bump daze', J("async () => { const C = await import('/js/core.js'), B = await import('/js/beastai07.js'), w = __w; w.M = C.MOVES.bison_gore; w.st = 3; w.t = 0; return B.bump(w); }"))
+        run('z_daze', int(os.environ.get('ZN', '400')), each="() => { const w = __w; if (!(w.st === 4 && w.M && w.M.id === 'bison_daze')) { w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; } }")
+        J('window.__fyFix = null')
+    if 'l' in SC:      # 11-27 N4：n07 待機。玩家放 60 公尺外、不強制任何狀態（舊的 w 段強制 st 8 遊戲下一步就改回 0）；先站定 150 步讓外觀朝向追上，再錄 LN 步
+        settle()
+        for _ in range(int(os.environ.get('IHOLD', '150'))): J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }"); adv()
+        os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y')
+        run('l_idle', int(os.environ.get('LN', '300')), each="() => { const w = __w; w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }")
+        J('window.__fyFix = null')
     if 'w' in SC: settle(); face(J('() => __w.f') * 57.2958); J("() => { window.__t8 = 0; }"); run('w_warn', int(os.environ.get('WN', '300')), each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")      # 11-27 N1 查到：野牛 temper＝neutral，遊戲裡沒有警告狀態（只有 territorial 會進 st 8）；這段強制 st＝8 下一步就被遊戲改回 0，錄到的其實是待機（探針 mode＝idle）。維持原樣（審核看的「警告」就是待機）
     if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y');      # 11-27 N1：被打段鏡頭固定在世界（原本跟著遊戲朝向轉，結尾看起來被拖著轉）
     if 'i' in SC:
