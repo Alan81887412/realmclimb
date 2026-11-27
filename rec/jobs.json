@@ -1,1 +1,1 @@
-[{"name":"R1_bear_co_1703","script":"seqR.py","animal":"bear","env":{"QS":"?bear=20","NOFADE":"1","FIXCAM":"1","FIXALL":"1","SUNSIDE":"1","REST":"1","LD":"1","HSP":"1","WX":"1","SC":"c,o"}}]
+[{"name":"D2_deer_G_rf","script":"seqD.py","animal":"deer","env":{"QS":"?deer=20","NOFADE":"1","FIXCAM":"1","LD":"1","WX":"1","LA":"1","TGND":"1","SC":"r,f"}}]
