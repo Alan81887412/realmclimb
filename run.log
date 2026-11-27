@@ -1,0 +1,5 @@
+setup {'n': 2, 'id': 580}
+w_idle frames 15 last {'st': 0, 'stT': 2.31, 'd': 61.9}
+lynx {"bad":false,"mode":"walk"} errs ['[p] console.error: Failed to load resource: net::ERR_FAILED']
+EXIT 0
+DONE
