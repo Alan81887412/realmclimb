@@ -85,10 +85,13 @@ with sync_playwright() as p:
         for i in range(skip): J(FLEE, [None, keep]); adv()
         run(name, steps, each="() => { const v = __v, w = __w, g = __game; const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > %s) { g.me.x = v.x - dx / d * %s; g.me.z = v.z - dz / d * %s; } w.cd = 9; }" % (keep, keep, keep))
     if 'r' in SC: settle(); chase('r_run', 50)
-    if 'q' in SC: settle(); print('force quill', J(FORCE, ['porc_quill', 3.0, 0.6, 2.2, 0.8])); run('q_quill', 560)
-    if 'b' in SC: settle(); print('force burst', J(FORCE, ['porc_burst', 3.0, 0.9, 0.25, 0.9])); run('b_burst', 360)
+    def phold(seg):      # 11-27 P1：PHOLD=步數 → 招式／被打前先站定（原本 settle 後還在閒晃轉向，遊戲朝向剛轉、外觀還在追，開頭幾格看起來原地被拖著轉）
+        n = int(os.environ.get('PHOLD', '0')) if seg in os.environ.get('PHSEG', 'qbki') else 0
+        for _ in range(n): J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; }"); adv()
+    if 'q' in SC: settle(); phold('q'); print('force quill', J(FORCE, ['porc_quill', 3.0, 0.6, 2.2, 0.8])); run('q_quill', 560)
+    if 'b' in SC: settle(); phold('b'); print('force burst', J(FORCE, ['porc_burst', 3.0, 0.9, 0.25, 0.9])); run('b_burst', 360)
     if 'k' in SC:
-        settle(); print('force back', J(FORCE, ['porc_back', -3.0, 0.6, 0.5, 0.9]))
+        settle(); phold('k'); print('force back', J(FORCE, ['porc_back', -3.0, 0.6, 0.5, 0.9]))
         if os.environ.get('FIXCAM'): J('window.__fyFix = __v.model.root.rotation.y')      # 倒衝：鏡頭固定在世界，看得出往後衝的位移
         run('k_back', 340); J('window.__fyFix = null')
     if 'f' in SC:
@@ -102,7 +105,7 @@ with sync_playwright() as p:
     if 'c' in SC: settle(); print('force charge', J(FORCE, (lambda a: [a[0]] + [float(x) for x in a[1:]])(os.environ.get('CHG', 'deer_charge,7.0,0.55,0.4,0.6').split(',')))); run('c_charge', 230)
     if 's' in SC: settle(); print('force spin', J(FORCE, ['boar_spin', 2.4, 0.5, 0.3, 0.6])); run('s_spin', 200)
     if 'h' in SC: settle(); J("() => { window.__t8 = 0; }"); run('h_warn', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
-    if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); J('window.__fyFix = __v.model.root.rotation.y' if os.environ.get('FIXCAM') else '0'); run('i_stagger', 220, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }"); J('window.__fyFix = null')
+    if 'i' in SC: settle(); phold('i'); J("() => { window.__t8 = 0; }"); J('window.__fyFix = __v.model.root.rotation.y' if os.environ.get('FIXCAM') else '0'); run('i_stagger', 220, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }"); J('window.__fyFix = null')
     if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 260)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
