@@ -2122,10 +2122,11 @@ export function makeBird(model, OPT = {}) {
   const WING = [['L', M.wingL, 1], ['R', M.wingR, -1]].map(([id, n, sd]) => { const b = n.map(B); return { id, sd, b, q0: b.map(x => GQ(x, Q()).clone()), p0: b.map(wp) }; });
   const HY0 = LEG[0].ft0.y, H0 = wp(P.pel).y, SIZE = (() => { const b = new THREE.Box3().setFromObject(model); return { h: b.max.y - b.min.y, len: b.max.z - b.min.z }; })();
   /* 摺翅姿勢：每一節骨頭的方向＋「羽毛往後」那個方向改成往下（世界／身體座標），在站姿上算一次存起來 */
+  if (OPT.foldN && OPT.fold) OPT.fold = OPT.fold.map((f, k) => OPT.foldN[k] ? [f[0], OPT.foldN[k]] : f);      /* 11-27 S2 OPT.foldN：只換各節羽毛方向（調參用） */
   const FOLD = OPT.fold || [[[0.15, -0.25, -0.95], [0, -1, 0.1]], [[0.1, 0.0, 1.0], [0, -1, 0]], [[0.08, -0.12, -1.0], [0, -1, 0]]];      /* 11-27 S1 OPT.fold：摺翅各節方向（x 往外為正）；原值往外 0.1～0.15，正面看翅膀從身側翹出來像半張開 */
   for (const W of WING) { W.qf = []; resetPose();
     for (let k = 0; k < 3; k++) { const b = W.b[k], c = W.b[k + 1], d0 = wp(c).sub(wp(b)).normalize(), t0 = V(0, 0, -1).addScaledVector(d0, -V(0, 0, -1).dot(d0)).normalize();
-      const f = FOLD[k], d1 = V(W.sd * f[0][0], f[0][1], f[0][2]).normalize(), t1 = V(f[1][0], f[1][1], f[1][2]); t1.addScaledVector(d1, -t1.dot(d1)).normalize();
+      const f = FOLD[k], d1 = V(W.sd * f[0][0], f[0][1], f[0][2]).normalize(), t1 = V((OPT.foldTx ? W.sd : 1) * f[1][0], f[1][1], f[1][2]); t1.addScaledVector(d1, -t1.dot(d1)).normalize();      /* 11-27 S2 OPT.foldTx：羽毛方向的 x 也照左右翼鏡射（往內為負） */
       const m0 = new THREE.Matrix4().makeBasis(d0, t0, d0.clone().cross(t0)), m1 = new THREE.Matrix4().makeBasis(d1, t1, d1.clone().cross(t1)), R = Q().setFromRotationMatrix(m1.multiply(m0.invert()));
       setWQ(b, R.multiply(GQ(b, Q()))); W.qf.push(b.quaternion.clone()); } }
   resetPose();
