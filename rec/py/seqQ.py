@@ -92,7 +92,10 @@ with sync_playwright() as p:
     FX = lambda: (need(), os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'))      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
     if 'a' in SC: settle(); FX(); run('a_walk', 240); J('window.__fyFix = null')
     if 'W' in SC:      # 11-27 G1：直線走路（閒晃目標每步設在正前方 30 公尺、家跟著走，維持走路速度 1.5；WA＝每秒轉幾弧度，預設 0 直走）；鏡頭固定在世界
-        settle(); J("() => { const w = __w; window.__wf = w.f; }"); FX(); run('W_walk', int(os.environ.get('WN', '360')), each="() => { const w = __w, g = __game; window.__wf += %s / 120; w.st = 0; w.t = 0; w.target = null; w.cd = 9; w.wanderT = 9; w.hx = w.x; w.hz = w.z; w.wx = w.x + Math.sin(window.__wf) * 30; w.wz = w.z + Math.cos(window.__wf) * 30; g.me.x = w.x - Math.sin(window.__wf) * 60; g.me.z = w.z - Math.cos(window.__wf) * 60; }" % os.environ.get('WA', '0')); J('window.__fyFix = null')
+        settle(); J("() => { const w = __w; window.__wf = w.f; }"); FX()
+        _we = "() => { const w = __w, g = __game; window.__wf += %s / 120; w.st = 0; w.t = 0; w.target = null; w.cd = 9; w.wanderT = 9; w.hx = w.x; w.hz = w.z; w.wx = w.x + Math.sin(window.__wf) * 30; w.wz = w.z + Math.cos(window.__wf) * 30; g.me.x = w.x - Math.sin(window.__wf) * 60; g.me.z = w.z - Math.cos(window.__wf) * 60; }" % os.environ.get('WA', '0')
+        for _i in range(int(os.environ.get('WPRE', '0'))): J(_we); adv()      # 11-27 G2 WPRE：先走 WPRE 步（遊戲走路速度從 0.9 慢慢加到 1.5 公尺／秒、中途還會掉一次）再開錄，錄到的是穩定速度的步態
+        run('W_walk', int(os.environ.get('WN', '360')), each="() => { const w = __w, g = __game; window.__wf += %s / 120; w.st = 0; w.t = 0; w.target = null; w.cd = 9; w.wanderT = 9; w.hx = w.x; w.hz = w.z; w.wx = w.x + Math.sin(window.__wf) * 30; w.wz = w.z + Math.cos(window.__wf) * 30; g.me.x = w.x - Math.sin(window.__wf) * 60; g.me.z = w.z - Math.cos(window.__wf) * 60; }" % os.environ.get('WA', '0')); J('window.__fyFix = null')
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
       const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > keep) { g.me.x = v.x - dx / d * keep; g.me.z = v.z - dz / d * keep; } w.cd = 9; }"""
     def flee(name, d0, keep, steps, skip=0):
