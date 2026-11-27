@@ -30,6 +30,7 @@ with sync_playwright() as p:
     def settle(n=90):
         J(RESET)
         for i in range(n): adv()
+        if not J('!!(window.__v && __v.model && __v.model.lx)'): need(); J(RESET); [adv() for i in range(n)]
     def run(name, steps, every=4, each=None):
         every = int(os.environ.get('EVERY', every))
         k = 0
@@ -66,10 +67,11 @@ with sync_playwright() as p:
             if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
-    def need():      # 11-27 B1：settle 之後模型有時還沒建（__v.model 是 null），先步進到模型出現再固定鏡頭
-        for i in range(600):
-            if J('!!(__v.model && __v.model.root)'): return
-            adv()
+    def need():      # 11-27 B1：settle 之後模型（或新模型 lx，GLB 還在載入）有時還沒建，先步進＋等待到出現再錄
+        for i in range(1200):
+            if J('!!(window.__v && __v.model && __v.model.root && __v.model.lx)'): return
+            adv(); page.wait_for_timeout(25)
+        print('need: model/lx 一直沒出現', flush=True)
     FX = lambda: (need(), os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'))      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
     if 'a' in SC: settle(); FX(); run('a_walk', 240); J('window.__fyFix = null')
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }

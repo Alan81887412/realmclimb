@@ -253,7 +253,7 @@ function solveLeg(L, heelW, pitch = 0, flex = 0, w = 1, o = {}) {
      肩到球節的距離比腿長 r 倍還短時，把球節往下、往後放（蹄尖釘在原地、繫部斜下去），上面的腿就不用折那麼多。最多下沉 繫部高度×max。 */
   if (OPT.fSink && L.kind === 'F' && !_slD && !o.fsk) { const g = o.g || 0, kA = 1 - sm(0.004, 0.06, heelW.y - HY - g);
     if (kA > 0.01 && L.hy > 1e-3) { const sw = wp(L.s), tg = heelW.clone(); tg.y += L.hy - HY; const d = sw.distanceTo(tg), thr = OPT.fSink.r * (L.dMax || 1);
-      const want = d < thr ? Math.min(OPT.fSink.max * L.hy, (thr - d) * (OPT.fSink.k || 1.3)) * kA : 0, dt0 = INR.dt || 0.0167; L.fsS = (L.fsS || 0) + clamp(want - (L.fsS || 0), -0.6 * dt0, 0.6 * dt0);      /* 每秒最多變化 0.6 m（一格約 2 公分），不跳 */
+      const want = d < thr ? Math.min(OPT.fSink.max * L.hy, (thr - d) * (OPT.fSink.k || 1.3)) * kA * (ctl.fsF === ctl.fc ? ctl.fsW : 0) : 0, dt0 = INR.dt || 0.0167; L.fsS = (L.fsS || 0) + clamp(want - (L.fsS || 0), -0.6 * dt0, 0.6 * dt0);      /* 每秒最多變化 0.6 m（一格約 2 公分），不跳 */
       const s2 = L.fsS; if (s2 > 1e-4) { const th = Math.acos(clamp((L.hy - s2) / L.hy, -1, 1)), { fwd } = axes(), h2 = heelW.clone().addScaledVector(fwd, -L.hy * Math.sin(th)); h2.y -= s2;
         return solveLeg(L, h2, pitch + FSG * th, flex, w, Object.assign({}, o, { fsk: 1 })); } } } else if (L.kind === 'F' && !_slD && !o.fsk) L.fsS = Math.max(0, (L.fsS || 0) - 0.6 * (INR.dt || 0.0167));
   _slD++; let r; try { r = solveLeg0(L, heelW, pitch, flex, w, o); } finally { _slD--; }
@@ -874,6 +874,7 @@ function loco(v, dt) { const vt = FIT.trot.v, vw = FIT.walk.v, vg = FIT.gallop.v
   const vl = ctVel(), nomSw = 1 - G.duty; let nAir = 0; for (const L of LEGS) if (L.c.air) nAir++;
   /* 步伐方向＝身體「實際」移動的方向（身體座標），不是永遠朝前。遊戲裡生物常在還沒轉過去時就被往側面、往後帶；步伐如果只會往前踏，腳一落地就被反方向拖走、馬上又得抬起來，四隻腳就一直懸在半空（看起來縮成一團）。直直往前走時方向就是正前方，和原本完全相同。 */
   { const sp = Math.hypot(vl.x, vl.z), gd = ctl.gd || (ctl.gd = [0, 1]), w = OMNI ? sm(0.12, 0.5, sp) : 0, tx = w * (sp > 1e-6 ? vl.x / sp : 0), tz = (1 - w) + w * (sp > 1e-6 ? vl.z / sp : 1), e = ctl.locoFresh0 ? 1 : 1 - Math.exp(-dt / 0.07); gd[0] += (tx - gd[0]) * e; gd[1] += (tz - gd[1]) * e; const n = Math.hypot(gd[0], gd[1]); if (n > 1e-3) { gd[0] /= n; gd[1] /= n; } else { gd[0] = 0; gd[1] = 1; } }
+  ctl.fsW = sm(0.2, 0.8, wG); ctl.fsF = ctl.fc;      /* OPT.fSink 只在奔跑（gallop 權重）生效：走路、站著不動（已審過的段落）完全不變 */
   const gdx = ctl.gd[0], gdz = ctl.gd[1], maxAir = v < vt * 1.15 ? 2 : (OPT.rbStart && ctl.mode === 'ram' && ctl.dph >= 1 && ctl.bobK != null && ctl.bobK < 0.97) ? 3 : 4;      /* OPT.rbStart：衝刺起步的前 0.45 秒至少一隻腳踩地（第一步不四腳騰空） */      /* 走路、小跑最多兩隻腳同時離地（奔跑才允許騰空） */
   for (const L of [LEGS[2], LEGS[3], LEGS[0], LEGS[1]]) { const cc = L.c, pr = ph + lerp((OPT.offW && a === 'walk' ? OPT.offW : OFFS[a])[L.id], (OPT.offW && b === 'walk' ? OPT.offW : OFFS[b])[L.id], u), cyc = Math.floor(pr), p = pr - cyc, stn = p < G.duty, sd = lerp(FIT[a].st[L.kind], FIT[b].st[L.kind], u) * Math.min(1, r);
     const hx = L.ga.x + L.side * sd, hz = L.ga.z + (L.cz || 0), PE = (L.kind === 'F' ? 34 : 22) * D2R; let tw, f;
