@@ -1,1 +1,1 @@
-[{"name":"b1_ape_rock_g5","script":"seqQ.py","animal":"ape","env":{"QS":"?ape=20","FIXCAM":"1","LD":"1","LA":"1","NOFADE":"1","VIEWS":"side,d45,b45","VYP":"1","SC":"x","FM":"ape_rock,8,1.0,0.55,0.9,300"}}]
+[{"name":"me_deer_kj_2035","script":"seqD.py","animal":"deer","env":{"QS":"?deer=20","NOFADE":"1","FIXCAM":"1","SC":"k,j","LD":"1","WP":"1"}}]
