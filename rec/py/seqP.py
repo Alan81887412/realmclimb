@@ -32,7 +32,7 @@ with sync_playwright() as p:
     for i in range(240): adv()
     def settle(n=90):
         J(RESET)
-        if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; const W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; }')      # SUNSIDE=1：野獸朝向讓鏡頭那一側向陽（各段亮度一致）
+        if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; const W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; if (v.model && v.model.lx) v.model.lx.ctl.vyW = null; }')      # SUNSIDE=1（外觀朝向也直接對齊，不然轉速上限低的物種在下一段還在慢慢轉）：野獸朝向讓鏡頭那一側向陽（各段亮度一致）
         for i in range(n): adv()
     def run(name, steps, every=4, each=None):
         every = int(os.environ.get('EVERY', every))
