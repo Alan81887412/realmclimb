@@ -275,7 +275,7 @@ function solveLeg(L, heelW, pitch = 0, flex = 0, w = 1, o = {}) {
 /* 11-27 A4 OPT.swDl {k, dR, dK}：擺盪最長秒數＝k×抬腳時的擺盪秒數；身體速度掉到抬腳時的 dR 倍以下（逃跑收尾急停），改成 dK×（剩下的擺盪加快落地，前腳不吊在胸口下） */
 /* 11-27 A4 OPT.cuT.g2 只在逃跑開始 g2t 秒內、外觀朝向還差 g2a 度以上（真的在轉身）時生效；直線奔跑本來就有騰空期，不擋 */
 function cuG2() { const T = OPT.cuT; return (ctl.cuFT ?? 9) < (T.g2t ?? 0.6) && (ctl.yErr ?? 0) > (T.g2a ?? 20) * D2R; }
-function swDlT(cc) { const D = typeof OPT.swDl === 'number' ? { k: OPT.swDl } : OPT.swDl; return (cc.vL > 1e-3 && (INR.vS || 0) < (D.dR ?? 0.6) * cc.vL ? (D.dK ?? 0.7) : (D.k ?? 1.3)) * cc.swS; }
+function swDlT(cc) { const D = typeof OPT.swDl === 'number' ? { k: OPT.swDl } : OPT.swDl; return (cc.vL > 1e-3 && (cc.u || 0) < (D.dU ?? 0.6) && (INR.vS || 0) < (D.dR ?? 0.6) * cc.vL ? (D.dK ?? 0.7) : (D.k ?? 1.3)) * cc.swS; }      /* dU：擺盪過了這個進度就不再加快（自檢：u 0.8 才加快，最後一格一次走完 17cm、蹄貼地滑進去） */
 function rlAim(L, hT, pq0, air, hq = 0) { const hs = wp(L.s), hh = wp(L.h), ax = LEGX.clone().applyQuaternion(GQ(L.s.parent, Q()).multiply(L.qp0i)).normalize();
   if (hh.distanceTo(hT) < 0.004) return; const prj = v => v.addScaledVector(ax, -v.dot(ax)), pa = prj(hh.clone().sub(hs)), pt = prj(hT.clone().sub(hs)), R = pa.length(), D = pt.length(); if (R < 1e-4 || D < 1e-4) return;
   const upP = V(0, 1, 0).addScaledVector(ax, -ax.y).normalize(), fw = upP.clone().cross(ax).normalize(), yt = pt.dot(upP), ft = pt.dot(fw); let pb = pt.clone().multiplyScalar(R / D);
