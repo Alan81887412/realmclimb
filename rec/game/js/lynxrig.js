@@ -1172,7 +1172,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   for (const L of FL) foldF(L, fF(L) * (1 - e3) + lerp(1, K.fL ?? 0.8, e3) * e3); for (const L of LEGS) drape(L, e3);
   root.updateMatrixWorld(true);
   if (t < T2 + 0.2) { const m = frontMin(), w = t >= T1 ? 1 - sm(T2, T2 + 0.2, t) : (m < 0 ? 1 : 0); if (w > 0) { root.position.y -= m * w; root.updateMatrixWorld(true); } }      /* 前腕（或折起的前腳）不穿地；跪下後前腕一直貼地到開始翻身 */
-  const tr = T1 + (K.hrT ?? 0.35) * (T2 - T1);
+  const tr = T1 + (K.hrT ?? 0.75) * (T2 - T1);      /* 後腳釘著讓後半身往下放（腿自然彎），快躺到地上才交接成折腿（太早交接：臀部還高，折腿 FK 會把蹄往後上方甩） */
   for (const L of HL) { const s = S.st[L.id], c = L.c;
     if (s.s === 'P' && (t >= tr || (t > T1 && L.dbg && L.dbg.r > (K.rr ?? 0.97)))) { const h = wp(L.h); s.s = 'R'; s.t0 = t; s.P0 = h.clone(); s.V0 = h.clone().sub(S.hp[L.id]).divideScalar(Math.max(dt, 1e-4)); }
     if (s.s === 'R' || s.s === 'F') { const k = lerp(1, K.hL ?? 0.85, e3); foldH(L, k); root.updateMatrixWorld(true); }
@@ -1186,7 +1186,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   /* 頭：①②低頭，③頭側躺貼地 */
   { const r = axes().right; rotW(HEAD.neck, r, (-(K.nk ?? 18) * e1 - (K.nk2 ?? 8) * e2 + (K.nk3 ?? 14) * e3) * D2R); rotW(HEAD.neck, Z1, side * (K.nr ?? 10) * e3 * D2R); }
   if (t >= T2) { root.updateMatrixWorld(true); const m = Math.min(mn(P.body), mn(P.LF), mn(P.RF), mn(P.LH), mn(P.RH)); root.position.y -= m * sm(T2, T2 + 0.2, t); root.updateMatrixWorld(true); }      /* 翻身時身體（含四肢）最低點貼地（連續修正，不用 5° 一格的 liftOff） */
-  { root.updateMatrixWorld(true); const y0 = OPT.kdH ?? -0.03, r = axes().right; if (mn(P.head) < y0) { let lo = 0, hi = 50; for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; rotW(HEAD.neck, r, m * D2R); const v = mn(P.head); rotW(HEAD.neck, r, -m * D2R); if (v < y0) lo = m; else hi = m; } rotW(HEAD.neck, r, hi * D2R); } }      /* 頭（含角）不埋進地：連續地把脖子抬到剛好 */
+  { root.updateMatrixWorld(true); const y0 = K.hy ?? -0.01, r = axes().right; if (mn(P.head) < y0) { let lo = 0, hi = 50; for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; rotW(HEAD.neck, r, m * D2R); const v = mn(P.head); rotW(HEAD.neck, r, -m * D2R); if (v < y0) lo = m; else hi = m; } rotW(HEAD.neck, r, hi * D2R); } }      /* 頭（含角）不埋進地：連續地把脖子抬到剛好 */
   tail(() => 0, 0.2, dt);
   if (t >= T3 && !S.frz) { root.updateMatrixWorld(true); S.frz = { b: bones.map(b => [b, b.quaternion.clone(), b.position.clone()]), rp: root.position.clone(), rq: root.quaternion.clone() }; } }
 function kdead(t, dt, hitSide) { if (OPT.kdTs) t /= OPT.kdTs;      /* OPT.kdTs（水豚）：整段倒地放慢幾倍（先腿軟、跪下、再倒，不是 3 格就趴下） */ const side = (t < 0.03 || !ctl.kdS) ? (ctl.kdS = (hitSide || OPT.kdSd || 1) >= 0 ? 1 : -1) : ctl.kdS;      /* 11-27 B1 OPT.kdSd（水豚）：遊戲沒傳 hitSide 時倒向哪一側（-1＝右側著地、背朝右邊；預設 +1 左側著地肚子朝右，水豚白肚皮大片，看起來像翻肚） */
