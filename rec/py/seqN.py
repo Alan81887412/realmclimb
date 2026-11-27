@@ -65,7 +65,7 @@ with sync_playwright() as p:
     if 'r' in SC: settle(); chase('r_run', 40)
     if 'g' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force gore', J(FORCEC, ['bison_gore', 12.0, 1.35, 1.15, 2.4, ['bison_regore'], 2])); run('g_gore', int(os.environ.get('GN', '1000'))); J('window.__fyFix = null')
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force regore', J(FORCEC, ['bison_regore', -9.0, 1.0, 1.0, 1.1, None, 2])); run('q_regore', 420); J('window.__fyFix = null')
-    if 'o' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force hook', J(FORCEC, ['bison_hook', 2.6, 0.72, 0.25, 0.75, None, 2])); run('o_hook', 260); J('window.__fyFix = null')      # 11-27 探針：甩角後轉身其實每秒約 110°（有限速），是鏡頭跟著遊戲朝向（一格轉 20°）在甩，看起來像牛急轉；鏡頭固定在世界
+    if 'o' in SC: settle(); print('force hook', J(FORCEC, ['bison_hook', 2.6, 0.72, 0.25, 0.75, None, 2])); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); run('o_hook', 260); J('window.__fyFix = null')      # 11-27 探針：甩角後轉身其實每秒約 110°（有限速），是鏡頭跟著遊戲朝向（一格轉 20°）在甩，看起來像牛急轉；鏡頭固定在世界
     if 'k' in SC: settle(); print('force buck', J(FORCEC, ['bison_buck', -2.6, 0.5, 0.22, 0.6, None, 2])); run('k_buck', 200)
     if 'z' in SC: settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
     if 'w' in SC: settle(); J("() => { window.__t8 = 0; }"); run('w_warn', 300, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
