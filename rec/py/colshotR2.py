@@ -25,6 +25,7 @@ with sync_playwright() as p:
     RS = "(f) => { let n = 0; __v.model.root.traverse(o => { if (o.isMesh) { o.receiveShadow = f; o.material.needsUpdate = true; n++; } }); return n; }"
     for ti, tx in enumerate(TEXS):
       if tx: print('tex', ti, tx, J(SWAP, tx), flush=True)
+      for i in range(40): J(SUN); J('window.__adv()')
       for k, st in enumerate(sets):
         st = list(st) + [1, 1, 1][len(st) - 3:] if len(st) < 6 else list(st)
         print(k, st, 'mats', J(APPLY, st), flush=True)
