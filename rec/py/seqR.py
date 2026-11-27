@@ -76,11 +76,11 @@ with sync_playwright() as p:
             adv()
     def run(name, steps, every=4, each=None):
         __waitlx()
-        k = 0; J('window.__mvS = 0')
+        k = 0; J('window.__mvS = 0; window.__mvP = null; window.__RESTP = %s' % ('true' if os.environ.get('RESTP') else 'false'))      # 11-27 R3 RESTP=1：收招回待機後把遊戲位置也釘住（原本收招後約 0.9 秒 AI 又開始走，片尾錄不到停住）
         if os.environ.get('FIXALL'): J('window.__fyFix = __v.model.root.rotation.y')      # FIXALL=1：每段鏡頭朝向都固定在世界（遊戲邏輯朝向一格轉很多時，鏡頭不跟著甩）
         for i in range(steps):
             if each: J(each)
-            if os.environ.get('REST'): J("() => { const w = __w, v = __v, g = __game; if (w.st >= 2 && w.st <= 5) { window.__mvS = 1; window.__mvF = null; } else if (window.__mvS && (w.st === 0 || w.st === 1 || w.st === 7 || w.st === 8)) { if (window.__mvF == null) window.__mvF = v.f; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.fleeFrom = null; w.cd = 9; w.f = v.f = window.__mvF; w.wx = v.x; w.wz = v.z; w.wanderT = 99; g.me.x = v.x - Math.sin(v.f) * 30; g.me.z = v.z - Math.cos(v.f) * 30; } }")      # REST=1：招式做完、回到走跑時野獸停下來站好（片段錄到動作真的停住）；R1：之後每步都釘住朝向、不閒晃，玩家放正後方 30 公尺（原本放 60 公尺遠，熊收招後原地轉 90° 去閒晃）
+            if os.environ.get('REST'): J("() => { const w = __w, v = __v, g = __game; if (w.st >= 2 && w.st <= 5) { window.__mvS = 1; window.__mvF = null; } else if (window.__mvS && (w.st === 0 || w.st === 1 || w.st === 7 || w.st === 8)) { if (window.__mvF == null) window.__mvF = v.f; if (window.__RESTP) { if (window.__mvP == null) window.__mvP = [w.x, w.z]; w.x = window.__mvP[0]; w.z = window.__mvP[1]; } w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.fleeFrom = null; w.cd = 9; w.f = v.f = window.__mvF; w.wx = v.x; w.wz = v.z; w.wanderT = 99; g.me.x = v.x - Math.sin(v.f) * 30; g.me.z = v.z - Math.cos(v.f) * 30; } }")      # REST=1：招式做完、回到走跑時野獸停下來站好（片段錄到動作真的停住）；R1：之後每步都釘住朝向、不閒晃，玩家放正後方 30 公尺（原本放 60 公尺遠，熊收招後原地轉 90° 去閒晃）
             r = adv()
             if i % every == 0:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
