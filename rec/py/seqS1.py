@@ -8,6 +8,7 @@ INIT += '; { const d0 = Date.now(), b = (Math.floor(d0 / 1000 / 4608) * 4608 + 3
 SETUP = SETUP.replace("c !== root && !(c.getObjectById && c.getObjectById(root.id))", "c !== root && c !== window.__keep && !(c.getObjectById && c.getObjectById(root.id))")      # Q2：KEEPME=1 錄影時留下玩家（沼蟒扭絞纏著的人）
 SETUP = SETUP.replace("px = root.position.x, py = root.position.y, pz = root.position.z", "px = root.position.x, py = root.position.y, pz = root.position.z; if (m.lx && m.lx.stage) { const _p = m.lx.stage.getWorldPosition(new TH.Vector3()); px = _p.x; pz = _p.z; }").replace("const m = v.model, root = m.root, fy = root.rotation.y, px", "const m = v.model, root = m.root; let fy = root.rotation.y, px")      # 11-27 B1：鏡頭對準外觀位置（新引擎 stage，可能因 cuS 平滑而落後遊戲邏輯位置），不然遊戲一格搬動野獸時畫面會跳
 SETUP = SETUP.replace('fy = root.rotation.y', 'fy = (window.__fyFix != null ? window.__fyFix : root.rotation.y)')
+SETUP = SETUP.replace("const sc = root.scale.x, cy = py + 1.6 + D * 0.04 + (window.__dy || 0);", "const sc = root.scale.x, cy = view === 'top' ? py + D * 1.5 : py + 1.6 + D * 0.04 + (window.__dy || 0); if (view === 'top') { dir[0] = -fw[0] * 0.02; dir[1] = -fw[1] * 0.02; }").replace("const s2 = Math.SQRT1_2, dir =", "const s2 = Math.SQRT1_2; let dir =")      # S1：top＝正上方往下看（量蛇的左右波動用，不交審）
 SETUP = SETUP.replace("view === 'front' ? fw :", "view === 'front' ? fw : view === 'b45' ? [(-fw[0] + rt[0]) * s2, (-fw[1] + rt[1]) * s2] :")      # Q2：斜後方視角 b45      # FIXCAM：鏡頭方向固定在世界（看得到轉身）          # 沿用 seq2 的 INIT／SETUP（確定性步進、棚拍鏡頭）
 def grab(page, name, k, D=None):
     D = D or float(os.environ.get('CAMD', 7))
@@ -63,6 +64,7 @@ with sync_playwright() as p:
       return JSON.stringify({ m: X.mode, ry: +X.root.position.y.toFixed(3), rz: +X.root.position.z.toFixed(3), t: X.LEGS.map(L => f(X.T.wp(L.t))), hf: f(fw), bl: +(X.ctl.bl || 0).toFixed(2), air: X.LEGS.map(L => L.c ? (L.c.air ? 1 : 0) : -1).join(''), vy: +(Math.atan2(...(v => [v.x, v.z])(new X.root.position.constructor(0, 0, 1).applyQuaternion(X.stage.getWorldQuaternion(new X.root.quaternion.constructor())))) * 57.3).toFixed(1), ly: +(Math.atan2(...(v => [v.x, v.z])(new X.root.position.constructor(0, 0, 1).applyQuaternion(X.stage.parent.getWorldQuaternion(new X.root.quaternion.constructor())))) * 57.3).toFixed(1) }); }"""
     J('window.__dy = ' + os.environ.get('DY', '0.2'))
     if os.environ.get('KEEPME'): print('keep0', J('(() => { window.__keep = __game.me.avatar && __game.me.avatar.group; return !!window.__keep; })()'), flush=True)
+    if os.environ.get('LOOKY'): print('looky', J('(() => { const sc = __v.model.root.scale.x, X = __v.model.lx; window.__dy = %s - 0.5 * sc; return JSON.stringify({ sc: +sc.toFixed(3), k: X && +X.k.toFixed(3), len: X && X.SIZE && +X.SIZE.len.toFixed(3), dy: +window.__dy.toFixed(3) }); })()' % os.environ['LOOKY']), flush=True)      # S1：鏡頭看的高度＝地面上 LOOKY 公尺（原本是 0.5×舊模型縮放＋DY，蛇會跑到畫面下緣）
     if os.environ.get('PYT7'): print('test7', J('(() => { __w.test7 = true; return true; })()'), flush=True)
     SC = os.environ.get('SC', 'c,s,k,h,i,j').split(',')
     def chase(name, nmax):
