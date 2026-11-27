@@ -79,7 +79,11 @@ with sync_playwright() as p:
     if 'z' in SC: settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
     if 'w' in SC: settle(); J("() => { window.__t8 = 0; }"); run('w_warn', 300, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
     if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y');      # 11-27 N1：被打段鏡頭固定在世界（原本跟著遊戲朝向轉，結尾看起來被拖著轉）
-    if 'i' in SC: run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }"); J('window.__fyFix = null')
+    if 'i' in SC:
+        for _ in range(int(os.environ.get('IHOLD', '150'))): J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }"); adv()      # 11-27 N1：被打前先站定 1.25 秒（settle 後還在閒晃轉向，外觀朝向落後遊戲朝向 130°，被打整段看起來在原地轉）
+        J("() => { window.__t8 = 0; }"); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y')
+        run('i_stagger', int(os.environ.get('IN', '180')), each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } else { w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; } }")      # 11-27 N1：被打結束後原地站穩（不接 AI 閒晃轉向），錄到動作停住
+        J('window.__fyFix = null')
     if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
     if os.environ.get('RB'): print('RB', J('JSON.stringify(__v.model.lx && __v.model.lx.RB)'), flush=True)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
