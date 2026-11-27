@@ -44,6 +44,7 @@ with sync_playwright() as p:
     for i in range(240): adv()
     def settle(n=90):
         J(RESET)
+        J('() => { if (__v.model && __v.model.lx) __v.model.lx.ctl.vyW = null; }')      # 外觀朝向直接對齊遊戲朝向（不然下一段開頭還在慢慢轉回來）
         for i in range(n): adv()
     def run(name, steps, every=4, each=None):
         k = 0; J('window.__mvS = 0')
