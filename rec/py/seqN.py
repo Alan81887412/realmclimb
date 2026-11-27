@@ -56,6 +56,7 @@ with sync_playwright() as p:
                 if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
                 if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
                 if os.environ.get('LA'): print('LA', name, k, J(LAJS), flush=True)
+                if os.environ.get('DBGL'): print('DL', name, k, J("(() => { const a = window.__dbgLift || []; window.__dbgLift = []; return JSON.stringify([a, __v.model.lx.ctl.mode, __v.model.lx.ctl.rmI]); })()"), flush=True)      # 11-27 N2：上一格到這一格讓腳離地的記錄（網址加 &dbgL=1；同 seqI A3）
                 grab(page, name, k); k += 1
         print(name, 'frames', k, 'last', {a: r.get(a) for a in ('st', 'stT', 'd')}, flush=True)
     J('window.__dy = 0.2')
