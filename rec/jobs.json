@@ -1,1 +1,1 @@
-[{"name":"me_bison_o_1350","script":"seqN.py","animal":"bison","env":{"QS":"?bison=20","NOFADE":"1","FIXCAM":"1","SC":"o","LD":"1","YAW":"1"}}]
+[{"name":"q2_ape_slam_1312","script":"seqQ.py","animal":"ape","env":{"QS":"?ape=20","FIXCAM":"1","SC":"x","LD":"1","VYP":"1","NOFADE":"1","VIEWS":"side,d45,b45","FM":"ape_slam,3,0.9,0.25,1.1,300"}}]
