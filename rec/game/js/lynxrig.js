@@ -1167,7 +1167,8 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   if (t >= T1 && !S.C) { resetPose(); setBody(S.A1, 0, 0); for (const L of FL) foldF(L, 1); root.updateMatrixWorld(true); const c = V(); for (const L of FL) c.add(wp(L.w)); c.multiplyScalar(0.5); c.y = 0; S.C = c;      /* 前腕觸地點（兩前腕中點）＝第②段支點 */
     const fb = (a) => { resetPose(); setBody(S.A1, a, 0); for (const L of FL) foldF(L, 1); for (const L of HL) foldH(L, 1); root.updateMatrixWorld(true); return Math.min(mn(P.body), mn(P.LH), mn(P.RH)); }; let lo = -0.9, hi = 0; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (fb(m) > 0) hi = m; else lo = m; } S.A2 = (lo + hi) / 2; resetPose(); }      /* 後半身放到腹部／折起的後腳碰地為止 */
   if (t >= T2 && !S.E) { resetPose(); setBody(S.A1, S.A2, 0); root.updateMatrixWorld(true); let w = 0; const v = V(); for (const p of P.body) { p.m.getVertexPosition(p.i, v); p.m.localToWorld(v); stage.worldToLocal(v); if (v.y < 0.25) w = Math.max(w, -side * v.x); } S.E = V(-side * (K.ew ?? 0.75) * w, 0, Hp.z * 0.5); resetPose(); }      /* 翻身軸：倒下那側腹部外緣的地面線 */
-  resetPose(); setBody(S.A1 * e1, S.A2 ? S.A2 * e2 : 0, S.E ? side * (K.ang ?? 80) * D2R * e3 : 0);
+  let a1 = S.A1 * e1; if (t < T1) { const fm = a => { resetPose(); setBody(a, 0, 0); for (const L of FL) foldF(L, fF(L)); root.updateMatrixWorld(true); return frontMin(); }; if (fm(a1) < 0) { let lo = 0, hi = a1; for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; if (fm(m) >= 0) lo = m; else hi = m; } a1 = lo; } }      /* 跪下途中前傾角不超過「前腳剛好不穿地」：原本前腳還沒折好就先前傾，蹄插地→整隻被往上頂 12cm、後腳搆不到地一格跳 30cm */
+  resetPose(); setBody(a1, S.A2 ? S.A2 * e2 : 0, S.E ? side * (K.ang ?? 80) * D2R * e3 : 0);
   /* 前腳 FK（跪＝腕前側著地）；後腳在 R／F 狀態時的 FK 目標 */
   for (const L of FL) foldF(L, fF(L) * (1 - e3) + lerp(1, K.fL ?? 0.8, e3) * e3); for (const L of LEGS) drape(L, e3);
   root.updateMatrixWorld(true);
