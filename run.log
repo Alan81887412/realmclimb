@@ -1,0 +1,40 @@
+setup {'n': 65, 'id': 112}
+model type -> capy
+Traceback (most recent call last):
+  File "/home/runner/work/realmclimb/realmclimb/rec/py/seqQ.py", line 107, in <module>
+    if 't' in SC: settle(); need(); J('() => { window.__tk = 0; const g = __game, v = __v; g.me.x = v.x + 25; g.me.z = v.z - 8; }'); J('window.__fyFix = __v.model.root.rotation.y'); run('t_turn', 200, each="() => { const w = __w, v = __v; if (++window.__tk === 40) { w.f += 1.3; v.f = w.f; } const g = __game; g.me.x = v.x + 25; g.me.z = v.z - 8; if (window.__tk === 130) { w.f -= 2.2; v.f = w.f; } }")
+                                                                                                                                                                                      ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/realmclimb/realmclimb/rec/py/seqQ.py", line 43, in run
+    if os.environ.get('P2') and name[0] in os.environ.get('P2'): print('P2', name, k, r.get('st'), r.get('stT'), r.get('sp'), J(P2), flush=True)
+                                                                                                                              ~^^^^
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/sync_api/_generated.py", line 9413, in evaluate
+    self._sync(
+    ~~~~~~~~~~^
+        self._impl_obj.evaluate(expression=expression, arg=mapping.to_impl(arg))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ~~~~~~~~~~~^^
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/_impl/_page.py", line 474, in evaluate
+    return await self._main_frame.evaluate(expression, arg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/_impl/_frame.py", line 346, in evaluate
+    await self._channel.send(
+    ...<6 lines>...
+    )
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/.local/lib/python3.14/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.Error: Page.evaluate: TypeError: Cannot read properties of undefined (reading 'model')
+    at eval (eval at evaluate (:311:30), <anonymous>:1:108)
+    at UtilityScript.evaluate (<anonymous>:318:18)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+EXIT 1
+DONE
