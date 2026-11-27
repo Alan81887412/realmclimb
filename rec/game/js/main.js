@@ -211,7 +211,7 @@ let last = 0, fpsN = 0, fpsT = 0, lowT = 0, sinceStart = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const realDt = Math.min(0.1, Math.max(0, (now - last) / 1000) || 0.016); last = now;      // 載入很久之後的第一幀，瀏覽器給的時間可能比 last 還早：不能讓時間倒退（否則受擊閃紅、無敵時間會被加成一大段）
-  let dt = realDt; if (fx.hitstop > 0) { fx.hitstop -= realDt; dt = realDt * 0.06; }
+  let dt = realDt; if (fx.hitstop > 0) { fx.hitstop -= realDt; dt = realDt * 0.06; } if (typeof window !== 'undefined') window.__rdt = realDt;      /* 11-27 新模型野獸的動作用真實時間（野獸的模擬本來就照真實時間走；命中停頓只慢玩家自己的畫面）：lynxrig 的 OPT.hsR 讀這個 */
   tick(dt, realDt, now, me.x, me.z);
   updateCamera(realDt);
   updateAudio(dt, realDt);
