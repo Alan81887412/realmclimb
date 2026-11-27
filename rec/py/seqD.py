@@ -26,6 +26,9 @@ with sync_playwright() as p:
     def settle(n=90):
         J(RESET)
         for i in range(n): adv()
+        for i in range(900):      # 11-27 雲端：新模型（含凍結引擎清單）是非同步載入，settle 完可能還沒建好；等到 lx 出現才開始錄
+            if J('() => !!(window.__v && __v.model && __v.model.lx)'): break
+            adv(); page.wait_for_timeout(20)
     def run(name, steps, every=4, each=None):
         every = int(os.environ.get('EVERY', every))
         k = 0
