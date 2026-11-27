@@ -1,1 +1,1 @@
-[{"name":"q2_capy_t_1310","script":"seqQ.py","animal":"capy","env":{"QS":"?capy=20","FIXCAM":"1","SC":"t","LD":"1","VYP":"1","NOFADE":"1","VIEWS":"side,d45,b45"}},{"name":"q2_ape_slam_1310","script":"seqQ.py","animal":"ape","env":{"QS":"?ape=20","FIXCAM":"1","SC":"x","LD":"1","VYP":"1","NOFADE":"1","VIEWS":"side,d45,b45","FM":"ape_slam,3,0.9,0.25,1.1,300"}}]
+[{"name":"me_deer_a_1335","script":"seqD.py","animal":"deer","env":{"QS":"?deer=20","NOFADE":"1","FIXCAM":"1","SC":"a","LD":"1"}}]
