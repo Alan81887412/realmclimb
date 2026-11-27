@@ -21,6 +21,7 @@ def grab(page, name, k, D=None):
     for vw in ('side', 'd45'):
         u = page.evaluate("([a,b]) => window.__shot(a,b)", [vw, D]); open(f'{outd}/{name}_{vw}_{k:03d}.jpg', 'wb').write(base64.b64decode(u.split(',', 1)[1]))
 WXJS = 'JSON.stringify(__v.model.lx.LEGS.map(L => { const X = __v.model.lx, TH = X.root.position.constructor, h = L.h.getWorldPosition(new TH()), t = L.t.getWorldPosition(new TH()), g = X.stage.getWorldPosition(new TH()).y; return [L.id, +h.x.toFixed(3), +h.z.toFixed(3), +(h.y - g).toFixed(3), +(t.y - g).toFixed(3), L.c && L.c.air ? 1 : 0, L.c && L.c.air ? +(L.c.u || 0).toFixed(2) : -1, +t.x.toFixed(3), +t.z.toFixed(3), ...(L.fin && L.fin.p ? (q => [+q.x.toFixed(3), +q.z.toFixed(3)])(X.stage.localToWorld(L.fin.p.clone())) : [0, 0]), ...(L.c && L.c.Wl ? [+L.c.Wl.x.toFixed(3), +L.c.Wl.z.toFixed(3)] : [0, 0]), L.dbg && L.dbg.err != null ? +L.dbg.err.toFixed(3) : -1]; }).concat([[+(__v.model.root.position.x).toFixed(3), +(__v.model.root.position.z).toFixed(3), +(__v.model.root.rotation.y * 57.3).toFixed(1), ...(p => [+p.x.toFixed(3), +p.z.toFixed(3)])(__v.model.lx.stage.getWorldPosition(new (__v.model.lx.root.position.constructor)()))]]))'      # 11-27 N1：每格腳掌根／趾尖世界座標（同 seqI 的 WX）
+LAJS = "JSON.stringify((X => { const TH = X.root.position.constructor, W = b => b.getWorldPosition(new TH()), an = (a, b, c) => +(b.clone().sub(a).angleTo(c.clone().sub(b)) * 57.3).toFixed(1); return X.LEGS.map(L => { const P = [L.s, L.e, L.w, L.h, L.t].map(W); return [L.id, an(P[0], P[1], P[2]), an(P[1], P[2], P[3]), an(P[2], P[3], P[4]), +P[3].y.toFixed(3), +P[4].y.toFixed(3), +P[3].x.toFixed(3), +P[3].z.toFixed(3)]; }); })(__v.model.lx))"      # 11-27 N2：畫面上實際關節角（同 seqQ 的 LA；LD 是解算要的角度、限速前）：[腳, 第1-2節, 第2-3節, 第3-4節, 掌根y, 腳尖y, 掌根x, 掌根z]
 RESET = "() => { const v = __v, w = __w, g = __game; w.st = 0; w.t = 0; w.target = null; w.M = null; w.mvc = 0; w.hp = w.hpMax || w.hp; __place(v.z); g.me.x = v.x; g.me.z = v.z - 60; }"
 FORCE = """async ([name, dist, wd, sd, rd]) => { const C = await import('/js/core.js'), v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * dist; g.me.z = v.z + Math.cos(v.f) * dist;
   w.target = 'self'; w.provoked = true; w.seen = {}; w.M = C.MOVES[name]; w.arg = 0; w.mvc = (w.M.i + 1); w.st = 2; w.t = 0; w.wd = wd; w.sd = sd; w.rd = rd; w.cd = 9; w.chain = null; return !!w.M; }"""
@@ -54,6 +55,7 @@ with sync_playwright() as p:
                 if os.environ.get('YAW'): print('YW', name, k, J("JSON.stringify((() => { const X = __v.model.lx, T = X.root.quaternion.constructor, V3 = X.root.position.constructor, y = o => { const q = new T(); o.getWorldQuaternion(q); const f = new V3(0, 0, 1).applyQuaternion(q); return +(Math.atan2(f.x, f.z) * 57.3).toFixed(1); }; return [__w.st, +(__w.t||0).toFixed(2), y(X.stage), X.stage.parent ? y(X.stage.parent) : null, y(X.root), X.ctl.vyW != null ? +(X.ctl.vyW * 57.3).toFixed(1) : null, X.ctl.mode, X.ctl.sT != null ? +X.ctl.sT.toFixed(3) : null, X.ctl.hkT != null ? +X.ctl.hkT.toFixed(3) : null, +((X.INR && X.INR.dt) || 0).toFixed(4), +(window.__hsM || 0).toFixed(3) + (window.__hsM = 0), +(window.__rdt || 0).toFixed(4), +((X.ctl && X.ctl.vg) || 0).toFixed(2), X.ctl && X.ctl.cvD]; })())"), flush=True)
                 if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
                 if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
+                if os.environ.get('LA'): print('LA', name, k, J(LAJS), flush=True)
                 grab(page, name, k); k += 1
         print(name, 'frames', k, 'last', {a: r.get(a) for a in ('st', 'stT', 'd')}, flush=True)
     J('window.__dy = 0.2')
@@ -66,6 +68,7 @@ with sync_playwright() as p:
             ok = ok + 1 if (r['st'] == 1 and r.get('sp', 0) > 0.7 * r.get('run', 9)) else 0
             if ok > 30 and i % 4 == 0:      # 11-27 N1：奔跑段也印腿資料（LD／WX／YAW），審核要的
                 if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
+                if os.environ.get('LA'): print('LA', name, k, J(LAJS), flush=True)
                 if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
                 grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
