@@ -1304,7 +1304,7 @@ function onMonState(v, st) {
   const near = Math.hypot(v.x - me.x, v.z - me.z) < 30, y = Hgt(v.x, v.z), M = v.M;
   if (st === MST.WIND) { v.ox = v.x; v.oz = v.z; v.of = v.f; if (near) ui.sfx('growl', v.type, { x: v.x, z: v.z, tag: M && M.snd8 ? M.snd8 : M && M.anim === 'roar' ? 'roar' : v.elite && BA7.owns(v) ? 'elite' : null }); /* 0.8：招式的 snd8 */ if (near && M && v.elite && M.cd) popNumber(v.x, y + MON[v.type].tagH * v.size + 0.6, v.z, M.name, 'call'); }
   if (st === MST.STRIKE) { v.ox = v.x; v.oz = v.z; v.of = v.tf; emit(v.x, y + 0.2, v.z, 8, [0.5, 0.44, 0.3], 2.5, 1.2, 0.4, 3); }
-  if (st === MST.WARN && near) { ui.sfx('growl', v.type, { x: v.x, z: v.z }); popNumber(v.x, y + MON[v.type].tagH * v.size + 0.5, v.z, '！', 'call'); if (Math.hypot(v.hx - me.x, v.hz - me.z) < MON[v.type].terr * 1.4) ui.tip('warn', MON[v.type].name + '在警告你：地上的黃圈是牠的地盤，退出去牠就不會追來；賴著不走牠會動手。'); }
+  if (st === MST.WARN && near) { if (!MON[v.type].warnOnly) ui.sfx('growl', v.type, { x: v.x, z: v.z });      /* 11-27 N3：只警告的野牛不在這裡出聲（音效接口在 beastai07 的 warnSfx7，跟噴氣同一格） */ popNumber(v.x, y + MON[v.type].tagH * v.size + 0.5, v.z, '！', 'call'); if (Math.hypot(v.hx - me.x, v.hz - me.z) < MON[v.type].terr * 1.4) ui.tip('warn', MON[v.type].name + '在警告你：地上的黃圈是牠的地盤，退出去牠就不會追來；賴著不走牠會動手。'); }
   if (st === MST.FLEE && near && v.st === MST.IDLE) { popNumber(v.x, y + MON[v.type].tagH * v.size + 0.4, v.z, '！', 'call'); ui.tip('deer', '野鹿很膽小，一靠近就逃。真要追，小心追到牠身後時的後蹬。'); }
   if (st === MST.CHASE && near && v.st === MST.IDLE && MON[v.type].temper === 'pack') ui.tip('pack', '灰狼成群行動，打一隻整群都會上，而且會輪流撲過來。看地上的紅色預警，往旁邊閃開直線的撲咬。');
   if (st === MST.DEAD) emit(v.x, y + 1, v.z, 30, [2.4, 2.1, 1.6], 5, 4, 0.7, 8);
@@ -1347,7 +1347,8 @@ function updateMonViews(dt, fxp, fzp) {
     { const lod = dist < 40 || (v.st !== MST.IDLE && v.st !== MST.CHASE && v.st !== MST.FLEE) ? 1 : dist < 80 ? 2 : 4; if (lod === 1 || (animN + v.id) % lod === 0 || v.adt > 0.2) { if (v.model.lx || !v.model.root.userData.fy0) { v.model.root.rotation.y = v.f; v.model.root.userData.fy0 = 1; } (v.model.anim || animCreature)(v.model, v, v.adt, clock); v.adt = 0; if (v.model.fx8 && v.model.fx8.length) bearFx08(v.model, emit, bearWp); } }      /* X12：動作依距離降頻，跳過的時間累加 */
     // 預警：威嚇時畫出領域（黃），預備與出招時畫出這一招的範圍（紅）
     const acting = (v.st === MST.WIND || v.st === MST.STRIKE) && v.M, hid = v.spawn * 1000 + v.aid; let s = acting ? moveShape(v) : null;
-    if (v.st === MST.WARN) v.tg = { shape: 'circle', x: v.hx, z: v.hz, f: 0, r: Dm.terr * (v.elite ? 1.3 : 1), p: v.stT / (Dm.warn * (v.elite ? 0.8 : 1)), tone: 'warn' };
+    if (v.st === MST.WARN && Dm.warnOnly) v.tg = { shape: 'circle', x: v.x, z: v.z, f: 0, r: (Dm.warnR || 8) * (v.elite ? 1.3 : 1), p: 0, tone: 'warn' };      /* 11-27 N3：野牛警告的黃圈以牠自己為圓心（不是地盤），退出黃圈就沒事 */
+    else if (v.st === MST.WARN) v.tg = { shape: 'circle', x: v.hx, z: v.hz, f: 0, r: Dm.terr * (v.elite ? 1.3 : 1), p: v.stT / (Dm.warn * (v.elite ? 0.8 : 1)), tone: 'warn' };
     else v.tg = s && (v.st === MST.WIND || (v.judged !== hid && (v.M.shape !== 'line' || v.stT < v.act.strike))) ? s : null;
     showTelegraph(v.tele, v, Dm, !!v.tg);
     // 受擊判定：每個人只判定自己。直線招式出招途中碰到就算；其餘在命中那一刻看站的位置

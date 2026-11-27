@@ -417,6 +417,10 @@ export function make(type, size, elite) { if (!TYPES.has(type) || !B07) return n
 
 /* ============================== 每一幀（tick 最後）：毒池、纏住、咬住、挑飛、撞暈的星星、presence、測試用生成的同步 ============================== */
 let ui7 = null, stars = null; const seen7 = new WeakMap();
+/* 11-27 N3 音效接口（空的，製作人選定音效後再接）：野牛警告每噴一次氣呼叫一次（動作引擎在噴氣那一格把 ctl.wnSn 加一；跟畫面上的白氣同一格）。
+   之後要接：在這裡呼叫 C.ui.sfx('warn7', 'bison', { x: v.x, z: v.z })，並在 audio-index.json 的 events 加 'warn7/bison' 對照（低鳴＋鼻息）。目前不出聲。 */
+const wsn7 = new WeakMap();
+function warnSfx7(v) { }
 function struggleUi(on, k, txt) {
   if (typeof window !== 'undefined' && window.__ui8struggle) { if (ui7) ui7.style.display = 'none'; return; }      // 0.8：介面畫遊戲樣式的掙脫條（struggle()）
   if (!ui7) { ui7 = document.createElement('div'); ui7.style.cssText = 'position:fixed;left:50%;top:64%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;font:700 16px/1.3 system-ui,sans-serif;color:#fff;text-align:center;text-shadow:0 1px 3px #000;display:none';
@@ -461,7 +465,8 @@ export function frame(dt) {
     if (v.st === MST.RECOVER && v.M === MOVES.bison_daze && v.model.root.visible) starV = v;
     if (v.type === 'python' && v.st === MST.STRIKE && v.M === MOVES.py_spit) spitFx(v);
     if (v.M && (v.M.grab || v.M.latch) && v.st === MST.RECOVER && v.stT < 0.5) sweptGrab(v);
-    if (v.type === 'python') pitView(v); }
+    if (v.type === 'python') pitView(v);
+    if (v.type === 'bison' && v.st === MST.WARN) { const X = v.model.lx, n = X && X.ctl ? X.ctl.wnSn | 0 : 0, n0 = wsn7.get(v); if (n0 != null && n !== n0) warnSfx7(v); wsn7.set(v, n); } else if (v.type === 'bison') wsn7.delete(v); }      /* 11-27 N3：野牛警告噴氣那一格（動作引擎 ctl.wnSn 加一） */
   if (glob && now - globT > 0.05) glob.visible = false;
   if (!stars) stars = starMesh(); stars.visible = !!starV; if (starV) { const y = Hgt(starV.x, starV.z) + 2.55 * starV.size; stars.position.set(starV.x + sin(starV.f) * 1.2, y, starV.z + cos(starV.f) * 1.2); stars.children.forEach((s, i) => { const a = s.userData.a + now * 3.2; s.position.set(cos(a) * 0.55, 0.08 * sin(now * 7 + i), sin(a) * 0.55); s.rotation.y = now * 5; }); }
 }
@@ -484,6 +489,7 @@ function onState(v, pst) {
   if (!near) return;
   snd7(v);
   if (v.st === MST.RECOVER && v.M === MOVES.bison_daze) { popNumber(v.x, y + 0.4, v.z, '撞暈了！', 'perfect'); emit(v.x + sin(v.f) * 1.4, Hgt(v.x, v.z) + 1, v.z + cos(v.f) * 1.4, 30, [0.8, 0.66, 0.45], 6, 3, 0.6, 6); fx.shake = Math.max(fx.shake, 0.35); C.ui.sfx('boom', 1, { x: v.x, z: v.z }); C.ui.tip('b7daze', '野牛撞上障礙物暈過去了：這幾秒是反擊的機會。'); }
+  if (v.st === MST.WARN && v.type === 'bison') C.ui.tip('b7warn', '野牛在警告你：抬頭、刨地、噴氣是嫌你靠太近。退開就沒事，牠不會先動手；打了牠，整群會一起衝過來。');      /* 11-27 N3 */
   if (v.st === MST.WIND && v.M && v.M.steer && v.type === 'bison') C.ui.tip('b7gore', '野牛刨地、低頭＝要衝了。看地上的直線：等牠衝到眼前再往旁邊閃（像鬥牛士），牠會衝過頭，煞車後回身再衝一次；把牠引向岩石或樹，撞上會暈好幾秒。');
   if (pst === MST.STRIKE && v.st === MST.RECOVER && v.M === MOVES.py_crush) popNumber(v.x, y + 0.3, v.z, '鬆開了', 'call');
   if (v.st === MST.STRIKE && v.M === MOVES.dog_howl) {      // 吠叫：標出站最遠的人（每個人自己看位置算，和主控端選的通常是同一個）

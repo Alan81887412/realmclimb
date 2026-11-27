@@ -31,6 +31,7 @@ def grab(page, name, k, D=None):
     if os.environ.get('HSP'): print('HS', name, k, page.evaluate('() => [+(window.__hs || 0).toFixed(3), +(window.__gt / 1000).toFixed(3), +(__v.stT || 0).toFixed(3), __v.st, +__v.x.toFixed(3), +__v.z.toFixed(3), +((__v.model.lx && __v.model.lx.ctl.cuL) || 0).toFixed(3), (q => +(Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x)) * 57.3).toFixed(1))(__v.model.lx.stage.getWorldQuaternion(new __v.model.lx.root.quaternion.constructor())), +(__v.model.root.rotation.y * 57.3).toFixed(1)]'), flush=True)      # 最後兩個：外觀朝向（stage 世界 yaw）、遊戲邏輯朝向
     if os.environ.get('GX'): print('GX', name, k, page.evaluate("JSON.stringify((() => { const X = __v.model.lx, TH = X.root.position.constructor, CH = window.__CH, sp = X.stage.getWorldPosition(new TH()), rp = __v.model.root.position; return X.LEGS.map(L => { const h = L.h.getWorldPosition(new TH()), t = L.t.getWorldPosition(new TH()); return [L.id, +(h.y - CH(h.x, h.z)).toFixed(3), +(t.y - CH(t.x, t.z)).toFixed(3)]; }).concat([[+(sp.y - CH(sp.x, sp.z)).toFixed(3), +(rp.y - CH(rp.x, rp.z)).toFixed(3), +CH(sp.x, sp.z).toFixed(3)]]); })())"), flush=True)      # 11-27 R2：每隻腳掌根／趾尖離「真實地形」的高度（公尺），最後一組＝stage、root 離地形高、stage 底下地形高
     if os.environ.get('R3P'): print('R3', name, k, page.evaluate("(() => { const X = __v.model.lx, a = window.__dbgLift || []; window.__dbgLift = []; return JSON.stringify([X.ctl.mode, X.LEGS.map(L => { const c = L.c || {}; return [L.id, c.air ? 1 : 0, c.stp ? 1 : 0, +(c.su || 0).toFixed(2), +(c.dur || 0).toFixed(3), +(c.d || 0).toFixed(3), +(c.lift || 0).toFixed(3), c.und ? 1 : 0, +(L.grm || 0).toFixed(4), L.dbg && L.dbg.err != null ? +L.dbg.err.toFixed(3) : -1, +(L.rr || 0).toFixed(3), +(c.n || 0).toFixed(3), +(c.h || 0).toFixed(3), +(L.d0 || 0).toFixed(3)]; }), a, +(X.ctl.bl || 0).toFixed(2), X.ctl.cuL != null ? +X.ctl.cuL.toFixed(3) : null]); })()"), flush=True)      # 11-27 R3：每隻腳跨步狀態 [id, air, stp, su, dur, 跨步距離 d, lift, und, grm, err, rr 伸長比, n, h, d0]＋這一格之前的抬腳記錄（QS 加 &dbgL=1）＋混合進度 bl＋外觀落後 cuL
+    if os.environ.get('RQ'): print('RQ', name, k, page.evaluate("JSON.stringify(__v.model.lx.LEGS.map(L => [L.id, +(L.rr || 0).toFixed(3), +(L.grm || 0).toFixed(4), L.dbg && L.dbg.err != null ? +L.dbg.err.toFixed(4) : null, L._lmD || null, L.fin ? L.fin.n : null, __v.model.lx.ctl.fc, +(__v.model.lx.ctl.bl || 0).toFixed(2), __v.model.lx.ctl.mode]))"), flush=True)      # 11-27 R2：腿伸長比 rr、搆不到量 grm、解算誤差 err、限速紀錄、fin 幀號、混合進度、模式
     D = D or GD
     if os.environ.get('STAT'): print('STAT', name, k, page.evaluate(STATJS), flush=True)
     if os.environ.get('NOFADE'): page.evaluate("() => { __v.model.root.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const M of ms) { const U = M.userData && M.userData.mfx; if (U && __w.st !== 6) { U.fade.value = 1; M.opacity = 1; } } }); }")      # 錄影用：關掉遊戲『大型野獸擋住鏡頭時變網點』的功能（錄影鏡頭不是遊戲鏡頭）
@@ -59,6 +60,15 @@ with sync_playwright() as p:
         for i in range(n):
             if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; let D = null; __game.W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; w.wx = v.x; w.wz = v.z; w.wanderT = 99; __game.me.x = v.x - Math.sin(h) * 30; __game.me.z = v.z - Math.cos(h) * 30; if (v.model) v.model.root.rotation.y = h; if (v.model && v.model.lx && i0 === 0) v.model.lx.ctl.vyW = null; }'.replace('i0 === 0', 'true' if i == 0 else 'false'))      # R1：玩家放在正後方 30 公尺（遊戲 40 公尺內每格都算動作、更新 root 朝向；原本 60 公尺隔格更新，錄影第 1 格 root 朝向才跳到向陽面，鏡頭固定在舊朝向）；settle 期間每步都把朝向釘在向陽面、不閒晃，第一步外觀朝向直接對齊（之後腳有時間站好）（原本只設一次，熊閒晃後出招前外觀還差 45～135°，起手原地被拖著轉、後掌滑）
             adv()
+    def still(nmax=600):      # 11-27 R2 STILL=1：強制招式前等四腳都踩地、連續 40 步沒有腳在空中（審核：片頭還接著上一動作的落腳）
+        n = 0
+        for i in range(nmax):
+            if J('!!(__v.model && __v.model.lx && __v.model.lx.LEGS.every(L => !(L.c && L.c.air)))'): n += 1
+            else: n = 0
+            if n >= 40: break
+            if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; w.wx = v.x; w.wz = v.z; w.wanderT = 99; }')
+            adv()
+        print('still', i, n, flush=True)
     def __waitlx():      # 雲端機器載模型比較慢：等新模型（lx）建好才開始錄（原本第一格就讀 __v.model.lx 會出錯）
         for _ in range(3000):
             if J('!!(__v.model && __v.model.lx)'): return
@@ -103,10 +113,10 @@ with sync_playwright() as p:
     if 's' in SC: settle(); print('force slam', J(FORCEC, ['bear_slam', 3.0, 0.95, 0.22, 0.95, None, 2])); run('s_slam', 360)
     if 'x' in SC: settle(); print('force swipe', J(FORCEC, ['bear_swipe', 3.0, 0.68, 0.26, 0.7, None, 2])); run('x_swipe', 300)
     if 'c' in SC: settle(); print('force charge', J(FORCEC, ['bear_charge', 10.0, 0.9, 0.7, 1.2, None, 2])); run('c_charge', 380)
-    if 'o' in SC: settle(); print('force roar', J(FORCEC, ['scar_roar', 6.0, 1.2, 0.3, 0.7, None, 2])); run('o_roar', 360)
+    if 'o' in SC: settle(); __waitlx(); still() if os.environ.get('STILL') else None; print('force roar', J(FORCEC, ['scar_roar', 6.0, 1.2, 0.3, 0.7, None, 2])); run('o_roar', 360)
     if 'q' in SC: settle(); print('force quake', J(FORCEC, ['scar_quake', 3.0, 0.85, 0.22, 1.3, None, 2])); run('q_quake', 380)
-    if 'i' in SC: settle(); J("() => { window.__t8 = 0; window.__fl = 0; }"); J('window.__fyFix = __v.model.root.rotation.y' if os.environ.get('FIXCAM') else '0'); run('i_stagger', int(os.environ.get('IN', '150')), each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")      # 被打完一定接逃跑（玩家在正前方 4 公尺：要轉 180° 才跑得掉，遊戲裡最常見的情況）; J('window.__fyFix = null')      # FIXCAM：被打接逃跑時鏡頭固定在世界（原本鏡頭跟著遊戲邏輯朝向一格轉 180°，看起來像身體一下轉過去）
-    if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
+    if 'i' in SC: settle(); __waitlx(); still() if os.environ.get('STILL') else None; J("() => { window.__t8 = 0; window.__fl = 0; }"); J('window.__fyFix = __v.model.root.rotation.y' if os.environ.get('FIXCAM') else '0'); run('i_stagger', int(os.environ.get('IN', '150')), each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")      # 被打完一定接逃跑（玩家在正前方 4 公尺：要轉 180° 才跑得掉，遊戲裡最常見的情況）; J('window.__fyFix = null')      # FIXCAM：被打接逃跑時鏡頭固定在世界（原本鏡頭跟著遊戲邏輯朝向一格轉 180°，看起來像身體一下轉過去）
+    if 'j' in SC: settle(); __waitlx(); still() if os.environ.get('STILL') else None; J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
     if os.environ.get('RB'): print('RB', J('JSON.stringify(__v.model.lx && __v.model.lx.RB)'), flush=True)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
