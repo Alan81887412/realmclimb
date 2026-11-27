@@ -109,6 +109,13 @@ with sync_playwright() as p:
     if 'w' in SC: settle(); run('w_idle', 200)
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); J('() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 20; g.me.z = v.z + Math.cos(v.f) * 20; w.st = 1; w.t = 0; w.target = "self"; w.provoked = true; w.cd = 9; w.seen = {}; }'); run('q_chase', 200, each='() => { const w = __w; w.cd = 9; if (w.st >= 2 && w.st <= 4) { w.st = 1; w.t = 0; } }'); J('window.__fyFix = null')
     if 't' in SC: settle(); need(); J('() => { window.__tk = 0; const g = __game, v = __v; g.me.x = v.x + 25; g.me.z = v.z - 8; }'); J('window.__fyFix = __v.model.root.rotation.y'); run('t_turn', 200, each="() => { const w = __w, v = __v; if (++window.__tk === 40) { w.f += 1.3; v.f = w.f; } const g = __game; g.me.x = v.x + 25; g.me.z = v.z - 8; if (window.__tk === 130) { w.f -= 2.2; v.f = w.f; } }")
+    if 'T' in SC:      # 11-27 B1：站著原地轉身（乾淨版）：位置釘住、AI 不閒晃，只在第 40 步左轉 75°、第 130 步右轉 126°（TA1、TA2 可改角度，弧度）；鏡頭固定在世界
+        settle(); need(); J("() => { const v = __v, w = __w, g = __game; window.__tk = 0; window.__T0 = { x: w.x, z: w.z, f: w.f }; g.me.x = v.x + 40; g.me.z = v.z - 40; }"); J('window.__fyFix = __v.model.root.rotation.y')
+        PIN = "() => { const w = __w, v = __v, g = __game, T = window.__T0; w.x = v.tx = T.x; w.z = v.tz = T.z; w.f = v.f = T.f; w.st = 0; w.t = 0; w.target = null; w.cd = 9; g.me.x = T.x + 40; g.me.z = T.z - 40; }"
+        for i in range(360): J(PIN); adv()      # 先站好 3 秒（視覺朝向追上邏輯朝向、四腳站定）再開始錄
+        J('window.__tk = 0')
+        run('T_turn', int(os.environ.get('TN', '220')), each="() => { const w = __w, v = __v, g = __game, T = window.__T0, k = ++window.__tk; if (k === 40) T.f += %s; if (k === 130) T.f -= %s; w.x = v.tx = T.x; w.z = v.tz = T.z; w.f = v.f = T.f; w.st = 0; w.t = 0; w.target = null; w.cd = 9; g.me.x = T.x + 40; g.me.z = T.z - 40; }" % (os.environ.get('TA1', '1.3'), os.environ.get('TA2', '2.2')))
+        J('window.__fyFix = null')
     for q, fm in enumerate([x for x in os.environ.get('FM', '').split(';') if x]):
         a = fm.split(','); settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force', a, J(FORCE, [a[0]] + [float(x) for x in a[1:5]])); run('m%d_%s' % (q, a[0]), int(a[5]) if len(a) > 5 else 200); J('window.__fyFix = null')
     if 's' in SC: settle(); print('force spin', J(FORCE, ['boar_spin', 2.4, 0.5, 0.3, 0.6])); run('s_spin', 200)
