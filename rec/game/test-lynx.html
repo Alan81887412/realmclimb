@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#000}</style></head><body><script type="module">
+// 夜鉤猞動作控制器的獨立測試頁（不進遊戲流程）
+import * as THREE from './js/three.bundle.js';
+import { GLTFLoader, SkeletonUtils } from './js/three.bundle.js';
+const { makeRig } = await import((m => m ? './js/lynxrig_' + m[1] + '.js' : './js/lynxrig.js')(/[?&]rig=(\w+)/.exec(location.search)));   // rig=v9：舊版腿解法（對照用）
+const W = 960, H = 540, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.shadowMap.enabled = true; document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x101114); const cam = new THREE.PerspectiveCamera(40, W / H, 0.1, 300);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x50603a, 1.25)); const sun = new THREE.DirectionalLight(0xfff2dd, 2.4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 }); scene.add(sun, sun.target);
+const g = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x5f8a3c, roughness: 1 })); g.rotation.x = -Math.PI / 2; g.receiveShadow = true; scene.add(g);
+const grid = new THREE.GridHelper(600, 600, 0x4c7030, 0x4c7030); grid.position.y = 0.002; scene.add(grid);
+const QP = new URLSearchParams(location.search);
+const gl = await new GLTFLoader().loadAsync('./assets/meshy/' + (new URLSearchParams(location.search).get('glb') || 'lynx_rig') + '.glb');
+const beast = new THREE.Group(), tilt = new THREE.Group(); beast.add(tilt); beast.scale.setScalar(+(new URLSearchParams(location.search).get('bs')) || 1.3);      /* bs＝整隻放大倍率（預設 1.3；測 3 倍大的 Boss 用 3.9） */ beast.rotation.y = 0.6; scene.add(beast);
+const X = makeRig(SkeletonUtils.clone(gl.scene), Object.assign(QP.get('slu') ? { slu: +QP.get('slu') } : {}, QP.get('dr0') ? { dr0: 1 } : {}, /wolf/.test(location.search) ? Object.assign({ clips: gl.animations, howl: true }, QP.get('prof') === '1' ? { prof: { warnY: -0.12, warnP: -5 } } : {}) : {}, (QP.get('mt') || QP.get('msf') || QP.get('msh') || QP.get('mrf') || QP.get('mrh')) ? { morph: { rot: { F: QP.get('mrf') ? QP.get('mrf').split(',').map(Number) : null, H: QP.get('mrh') ? QP.get('mrh').split(',').map(Number) : null }, tailLen: +(QP.get('mt') || 1), earTuft: +(QP.get('me') || 1), paw: +(QP.get('mp') || 1), seg: { F: QP.get('msf') ? QP.get('msf').split(',').map(Number) : null, H: QP.get('msh') ? QP.get('msh').split(',').map(Number) : null } } } : {})); X.stage.scale.setScalar(0.9 * (+QP.get('sz') || 1)); tilt.add(X.stage);
+{ const F = await import('./js/meshyfx.js'); F.fixMeshyMaterials(X.stage, /wolf/.test(location.search) ? { sat: 0.95, gain: 1.2, gam: 0.68 } : { sat: 1.25, gam: 0.9 }); window.__FX = F; }
+if (QP.get('tex')) { const t = await new THREE.TextureLoader().loadAsync('./assets/meshy/' + QP.get('tex')); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; X.stage.traverse(o => { if (o.isMesh) { o.material.map = t; o.material.needsUpdate = true; } }); }
+if (QP.get('nrm')) { const t = await new THREE.TextureLoader().loadAsync('./assets/meshy/' + QP.get('nrm')); t.flipY = false; t.anisotropy = 4; X.stage.traverse(o => { if (o.isMesh) { o.material.normalMap = t; o.material.needsUpdate = true; } }); }
+window.__X = X; window.__errs = []; window.__beast = beast; window.__V3 = THREE.Vector3;
+/* 地形測試：terr＝大起伏振幅（公尺）、tsl＝整體坡度（每公尺升高）、tb＝小凹凸振幅、tilt=1＝照遊戲的做法把整隻順坡傾斜 */
+const TERR = +QP.get('terr') || 0, TSL = +QP.get('tsl') || 0, TB = +QP.get('tb') || 0, TILT = QP.get('tilt') === '1', SL = [0, 0, 0];
+const HG = (x, z) => TERR * (0.6 * Math.sin(0.9 * x + 0.3) + 0.8 * Math.sin(1.1 * z + 0.5) * Math.cos(0.5 * x)) + TSL * z + TB * Math.sin(5.2 * x) * Math.sin(4.7 * z + 1);
+if (TERR || TSL || TB) { g.visible = false; grid.visible = false; const mk = (n, mat, dy) => { const geo = new THREE.PlaneGeometry(80, 80, n, n); geo.rotateX(-Math.PI / 2); const pa = geo.attributes.position; for (let i = 0; i < pa.count; i++) pa.setY(i, HG(pa.getX(i), pa.getZ(i)) + dy); geo.computeVertexNormals(); const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; scene.add(m); return m; };
+  mk(480, new THREE.MeshStandardMaterial({ color: 0x5f8a3c, roughness: 1 }), 0); mk(80, new THREE.MeshBasicMaterial({ color: 0x4c7030, wireframe: true }), 0.004).receiveShadow = false;
+  window.__gnd = HG; if (X.T.setGround) X.T.setGround(HG); beast.position.y = HG(beast.position.x, beast.position.z); beast.rotation.order = 'YXZ'; }
+window.__place = (dt, snap) => { if (!window.__gnd) return; const x = beast.position.x, z = beast.position.z, yaw = beast.rotation.y, sc = beast.scale.x, sy = Math.sin(yaw), cy = Math.cos(yaw), Lf = 0.9 * sc, Ws = 0.5 * sc, cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const h0 = HG(x, z); beast.position.y = h0; if (!TILT) return; const hf = HG(x + sy * Lf, z + cy * Lf), hb = HG(x - sy * Lf, z - cy * Lf), hl = HG(x + cy * Ws, z - sy * Ws), hr = HG(x - cy * Ws, z + sy * Ws);
+  const tx = cl(-Math.atan2(hf - hb, 2 * Lf), -0.45, 0.45), tz = cl(Math.atan2(hl - hr, 2 * Ws), -0.35, 0.35), ty = cl(((hf + hb) / 2 - h0) / sc, -0.25, 0.25) * 0.6, ks = snap ? 1 : 1 - Math.exp(-7 * dt);
+  SL[0] += (tx - SL[0]) * ks; SL[1] += (tz - SL[1]) * ks; SL[2] += (ty - SL[2]) * ks; tilt.rotation.set(SL[0], 0, SL[1]); tilt.position.y = SL[2]; };
+window.__place(0, true);
+/* 腳印（&marks=1）：每隻腳踩下去的那一刻在地上留一個圈；腳如果在地上滑，就會看到腳離開自己的圈 */
+const MK = { on: QP.get('marks') === '1', was: [0, 0, 0, 0], list: [], geo: new THREE.RingGeometry(0.05, 0.085, 24), mat: new THREE.MeshBasicMaterial({ color: 0xffe86b, transparent: true, opacity: 0.95, depthWrite: false }), v: new THREE.Vector3() }; MK.geo.rotateX(-Math.PI / 2);
+window.__marks = () => { if (!MK.on) return; const sW = beast.scale.x * X.stage.scale.x; X.LEGS.forEach((L, i) => { L.t.getWorldPosition(MK.v); const g = window.__gnd ? window.__gnd(MK.v.x, MK.v.z) : 0, down = MK.v.y - g < (L.P0[4].y + 0.012) * sW;
+  if (down && !MK.was[i]) { const m = new THREE.Mesh(MK.geo, MK.mat); m.position.set(MK.v.x, g + 0.008, MK.v.z); m.renderOrder = 2; scene.add(m); MK.list.push(m); if (MK.list.length > 60) scene.remove(MK.list.shift()); } MK.was[i] = down ? 1 : 0; }); };
+window.__step = (o) => { try { const sp = o.speed || 0; beast.rotation.y += (o.turn || 0) * o.dt; const hy = beast.rotation.y; const ws_ = beast.scale.x * X.stage.scale.x, hm = hy + (o.mdir || 0);      /* mdir＝移動方向和面向差幾度（弧度）：模擬遊戲裡「身體還沒轉過去就被帶走」 */ beast.position.x += Math.sin(hm) * sp * ws_ * o.dt; beast.position.z += Math.cos(hm) * sp * ws_ * o.dt; window.__place(o.dt, false); beast.updateMatrixWorld(true); X.update(o); window.__marks(); } catch (e) { window.__errs.push(String(e && e.stack || e)); } return X.mode; };
+window.__render = (view, D = 3.0) => { const dead = X.mode === 'dead' && X.RG.S.on, p = window.__camFix ? window.__camFix : dead ? X.stage.localToWorld(X.RG.T.c.clone()).setY(0) : beast.position, ly = dead ? 0.7 - 0.3 * Math.min(1, X.RG.S.t / 0.9) : 0.7, fy = window.__camYaw == null ? 0.6 : window.__camYaw, fw = new THREE.Vector3(Math.sin(fy), 0, Math.cos(fy)), rt = new THREE.Vector3(Math.cos(fy), 0, -Math.sin(fy));
+  const dir = view === 'side' ? rt : rt.clone().add(fw).normalize(); cam.position.copy(p).addScaledVector(dir, D); cam.position.y = window.__camY == null ? 1.5 : window.__camY; cam.lookAt(p.x, window.__camLY == null ? ly : window.__camLY, p.z); sun.position.set(p.x - 6, 12, p.z + 5); sun.target.position.copy(p); sun.target.updateMatrixWorld();
+  r.render(scene, cam); return r.domElement.toDataURL('image/jpeg', 0.9); };
+window.__ready = true;
+</script></body></html>

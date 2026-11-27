@@ -1,0 +1,59 @@
+# 雲端錄影（11-27 製作人同意）：推到 rec 分支、rec/jobs.json 有變就跑。
+# 每個工作一台 4 核雲端機，同時最多 8 台；錄好的格推到 recout/<提交>/<名稱> 分支，本機再抓回來。
+# 不碰 main、不碰網站、不用任何金鑰（只用 GitHub 自帶的 GITHUB_TOKEN 推結果分支）。
+name: rec
+on:
+  push:
+    branches: [rec]
+    paths: ['rec/jobs.json']
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      m: ${{ steps.p.outputs.m }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: rec/jobs.json
+          sparse-checkout-cone-mode: false
+      - id: p
+        run: echo "m=$(jq -c . rec/jobs.json)" >> "$GITHUB_OUTPUT"
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        job: ${{ fromJson(needs.plan.outputs.m) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup
+        run: |
+          pip install --quiet playwright==1.63.0 pillow numpy
+          mkdir -p /tmp/gt && cp rec/gt/common.py /tmp/gt/
+          echo '${{ toJson(matrix.job.env) }}' | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
+          ls -la /usr/bin/google-chrome
+      - name: record
+        run: |
+          cd rec/py
+          mkdir -p /tmp/out
+          set +e
+          timeout 4200 python3 ${{ matrix.job.script }} "$GITHUB_WORKSPACE/rec/game" /tmp/out ${{ matrix.job.animal }} > /tmp/out/run.log 2>&1
+          echo "EXIT $?" >> /tmp/out/run.log
+          echo DONE >> /tmp/out/run.log
+          tail -5 /tmp/out/run.log
+      - name: push result
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd /tmp/out
+          git init -q -b out
+          git config user.name rec-bot
+          git config user.email rec-bot@users.noreply.github.com
+          git add -A && git commit -qm "rec ${{ matrix.job.name }} @ ${GITHUB_SHA::8}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/recout/${GITHUB_SHA::8}/${{ matrix.job.name }}"

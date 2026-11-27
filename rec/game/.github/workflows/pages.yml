@@ -1,0 +1,35 @@
+# 【範本，需使用者決定後才啟用】
+# 用途：每次 push 到 main，自動把網站（排除 docs、測試檔）部署到 GitHub Pages。
+# 啟用前請使用者：
+#   1. 把這個檔案放到儲存庫的 .github/workflows/pages.yml
+#   2. 儲存庫 Settings → Pages → Build and deployment → Source 選「GitHub Actions」
+#   3. 決定是否要改成手動觸發（只留 workflow_dispatch）
+# 若不想用 Actions：也可以直接把 tools/build-pages.sh 產出的 pages-out/ 內容放到 gh-pages 分支或 main 的 /docs。
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site folder
+        run: tools/build-pages.sh . "$RUNNER_TEMP/pages-out"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/pages-out
+      - id: deployment
+        uses: actions/deploy-pages@v4
