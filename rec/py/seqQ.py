@@ -126,7 +126,7 @@ with sync_playwright() as p:
     if 's' in SC: settle(); print('force spin', J(FORCE, ['boar_spin', 2.4, 0.5, 0.3, 0.6])); run('s_spin', 200)
     if 'k' in SC: settle(); print('force kick', J(FORCE, ['deer_kick', -2.4, 0.36, 0.2, 0.45])); run('k_kick', 140)
     if 'h' in SC: settle(); J("() => { window.__t8 = 0; }"); run('h_warn', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
-    if 'i' in SC: settle(); FX(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")
+    if 'i' in SC: settle(); FX(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } else if (%s) { const g = __game; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.wanderT = 9; w.wx = w.x; w.wz = w.z; g.me.x = w.x; g.me.z = w.z - 60; } }" % ('true' if os.environ.get('IHOLD2') else 'false'))      # 11-27 C1 IHOLD2=1：被打完站著不動（片尾停得住）
     if 'j' in SC: settle(int(os.environ.get('JSET', '90'))); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 260)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
