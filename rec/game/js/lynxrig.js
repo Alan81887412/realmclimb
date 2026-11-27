@@ -1149,7 +1149,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   const P = kdPts(), FL = LEGS.filter(L => L.kind === 'F'), HL = LEGS.filter(L => L.kind === 'H');
   let S = ctl.k4; if (!S || ctl.deadFresh || t < S.t - 1e-6) { ctl.deadFresh = false; const side = (hitSide || OPT.kdSd || 1) >= 0 ? 1 : -1; ctl.kdS = side;
     const e = 0.4; ctl.k4 = S = { t: t, side, st: {}, hp: {}, p1: {}, frz: null, A1: null, A2: null, C: null, E: null, gx: (gAt(V(e, 0, 0)) - gAt(V(-e, 0, 0))) / (2 * e), gz: (gAt(V(0, 0, e)) - gAt(V(0, 0, -e))) / (2 * e) };      /* 地面坡度（stage 尺度）：貼地都量「離坡面多高」 */
-    for (const L of HL) { const c = L.c, h = wp(L.h); if (!c.ok || c.air || c.key || c.stp) { S.st[L.id] = { s: 'L', t0: t, P0: h.clone(), V0: V(), P1: V(h.x, 0, h.z) }; ctPlant(L, V(h.x, 0, h.z)); } else S.st[L.id] = { s: 'P' }; c.air = c.key = c.stp = false; S.hp[L.id] = h.clone(); } }
+    for (const L of HL) { const c = L.c, h = wp(L.h); if (!c.ok || c.air || c.key || c.stp || (q => Math.hypot(q.x - h.x, q.z - h.z) > 0.12)(ctLocal(L))) {      /* 接觸點跟蹄實際位置差太多（剛被搬位置、閒晃跨步中）也當成在空中：從現在的位置放下去 */ S.st[L.id] = { s: 'L', t0: t, P0: h.clone(), V0: V(), P1: V(h.x, 0, h.z) }; ctPlant(L, V(h.x, 0, h.z)); } else S.st[L.id] = { s: 'P' }; c.air = c.key = c.stp = false; S.hp[L.id] = h.clone(); } }
   S.t = t; const side = S.side, mn = pts => skinMinY(pts, -S.gx, -S.gz);
   if (S.frz && t >= T3) { for (const [b, q, p] of S.frz.b) { b.quaternion.copy(q); b.position.copy(p); } root.position.copy(S.frz.rp); root.quaternion.copy(S.frz.rq); root.updateMatrixWorld(true); tail(() => 0, 0.2, dt); return; }
   const Hp = HL[0].P0[0].clone().add(HL[1].P0[0]).multiplyScalar(0.5);      /* 髖關節中點（站姿） */
@@ -1174,7 +1174,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   if (t < T2 + 0.2) { const m = frontMin(), w = t >= T1 ? 1 - sm(T2, T2 + 0.2, t) : (m < 0 ? 1 : 0); if (w > 0) { root.position.y -= m * w; root.updateMatrixWorld(true); } }      /* 前腕（或折起的前腳）不穿地；跪下後前腕一直貼地到開始翻身 */
   const tr = T1 + (K.hrT ?? 0.75) * (T2 - T1);      /* 後腳釘著讓後半身往下放（腿自然彎），快躺到地上才交接成折腿（太早交接：臀部還高，折腿 FK 會把蹄往後上方甩） */
   for (const L of HL) { const s = S.st[L.id], c = L.c;
-    if (s.s === 'P' && (t >= tr || (t > T1 && L.dbg && (L.dbg.r > (K.rr ?? 0.97) || L.dbg.r < (K.rlo ?? 0.62) || (L.dbg.err || 0) > 0.005)))) { const q = ctLocal(L); q.y = ctGnd(L, q) + HY; s.s = 'R'; s.t0 = t; s.P0 = q; s.V0 = V(); }      /* 從釘地點、速度 0 出發（這一格腿還沒解，不能拿骨頭位置當起點）。解除條件：到時間、或腿快伸直／折到 IK 折不下去（後半身往下放時髖會往後移過蹄的正上方） */
+    if (s.s === 'P' && (t >= tr || (t > T1 && L.dbg && (L.dbg.r > (K.rr ?? 0.97) || L.dbg.r < (K.rlo ?? 0.66) || (L.dbg.err || 0) > 0.005)))) { s.s = 'R'; s.t0 = t; s.P0 = S.hp[L.id].clone(); s.V0 = V(); }      /* 從上一格蹄實際的位置、速度 0 出發（這一格腿還沒解，不能拿骨頭位置當起點）。解除條件：到時間、或腿快伸直／折到 IK 折不下去（後半身往下放時髖會往後移過蹄的正上方） */
     const wF = s.s === 'R' || s.s === 'F' ? sm(T2 - 0.05, T2 + 0.2, t) : 0;      /* 身體放平、貼地之後才換成折腿 FK */
     if (wF > 0) { foldH(L, lerp(1, K.hL ?? 0.85, e3)); root.updateMatrixWorld(true); }
     if (s.s === 'F' || wF >= 1) { s.s = 'F'; S.hp[L.id] = wp(L.h); continue; }
