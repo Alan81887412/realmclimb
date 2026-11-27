@@ -86,6 +86,9 @@ with sync_playwright() as p:
             if J('!!(window.__v && __v.model && __v.model.root && __v.model.lx)'): return
             adv(); page.wait_for_timeout(25)
         print('need: model/lx 一直沒出現', flush=True)
+    VH = "([d]) => { const v = __v, w = __w, g = __game, X = v.model && v.model.lx, a = X && X.ctl && X.ctl.vy != null ? X.ctl.vy : v.f; w.cd = 9; w.target = 'self'; w.provoked = true; if (w.st !== 1) { w.st = 1; w.t = 0; } g.me.x = v.x + Math.sin(a) * d; g.me.z = v.z + Math.cos(a) * d; }"      # S2：人站在蛇「外觀」朝向正前方 d 公尺、蛇只轉頭不移動（外觀不用轉，身體保持直的）
+    def vhold(n, d=5.0):
+        for i in range(n): J(VH, [d]); adv()
     FX = lambda: (need(), os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'))      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
     if 'a' in SC: settle(); FX(); run('a_walk', int(os.environ.get('AN', '240'))); J('window.__fyFix = null')
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
@@ -99,7 +102,8 @@ with sync_playwright() as p:
         settle(); J('window.__fyFix = __v.model.root.rotation.y'); J("() => { const X = __v.model.lx; if (!X.__u0) { X.__u0 = X.update; X.update = o => X.__u0(window.__ovr ? Object.assign({}, o, window.__ovr(o)) : o); } window.__ck = 0; }")
         CS = float(os.environ.get('CS', '3.5'))
         if os.environ.get('KEEPME'): print('keep', J('(() => { window.__keep = __game.me.avatar && __game.me.avatar.group; return !!window.__keep; })()'))
-        run('C_crush', int((0.1 + CS + 1.6) * 120), each="() => { const v = __v, w = __w, g = __game, t = (window.__ck++) / 120, CS = %s; w.cd = 9; w.st = 0; w.t = 0; w.target = null; g.me.x = v.x; g.me.z = v.z; window.__ovr = () => t < 0.1 ? { st: 2, stT: t, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : t < 0.1 + CS ? { st: 3, stT: t - 0.1, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : t < 1.3 + CS ? { st: 4, stT: t - 0.1 - CS, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : { st: 1, stT: t - 1.3 - CS, anim: '' }; }" % CS)
+        vhold(int(os.environ.get('PHOLD', '0'))); J("() => { const v = __v; window.__C0 = { x: v.x, z: v.z, f: v.f }; }")
+        run('C_crush', int((0.1 + CS + 1.6) * 120), each="() => { const v = __v, w = __w, g = __game, t = (window.__ck++) / 120, CS = %s, C0 = window.__C0; w.cd = 9; w.st = 0; w.t = 0; w.target = null; w.wanderT = 9; w.x = v.tx = C0.x; w.z = v.tz = C0.z; w.f = v.f = C0.f; g.me.x = C0.x; g.me.z = C0.z; window.__ovr = () => t < 0.1 ? { st: 2, stT: t, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : t < 0.1 + CS ? { st: 3, stT: t - 0.1, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : t < 1.3 + CS ? { st: 4, stT: t - 0.1 - CS, anim: 'crush', wind: 0.1, strike: CS, recover: 1.2 } : { st: 1, stT: t - 1.3 - CS, anim: '' }; }" % CS)
         J('window.__ovr = null; window.__fyFix = null; window.__keep = null')
     if 'O' in SC:      # Q2：只改送進動作引擎的招式狀態（OV＝名稱,anim,grab,wind,strike,recover;…）；搭 MT 用別的動物的 AI 站著不動（沼蟒在自己的獸坑會沉下去、鏡頭對不到）
         for q, ov in enumerate([x for x in os.environ.get('OV', '').split(';') if x]):
@@ -143,12 +147,12 @@ with sync_playwright() as p:
         J('window.__fyFix = null')
     for q, fm in enumerate([x for x in os.environ.get('FM', '').split(';') if x]):
         a = fm.split(','); settle()
-        for i in range(int(os.environ.get('PHOLD', '0'))): J("([d]) => { const v = __v, w = __w, g = __game; w.cd = 9; w.target = 'self'; w.provoked = true; if (w.st !== 1) { w.st = 1; w.t = 0; } g.me.x = v.x + Math.sin(v.f) * d; g.me.z = v.z + Math.cos(v.f) * d; }", [float(a[1])]); adv()      # S2 PHOLD：出招前人站在正前方、蛇只轉頭（d<7.5）站定 PHOLD 步，外觀朝向追上遊戲朝向（不然第 0～7 格整條甩 44°）
-        os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force', a, J(FORCE, [a[0]] + [float(x) for x in a[1:5]])); run('m%d_%s' % (q, a[0]), int(a[5]) if len(a) > 5 else 200, each=("() => { const w = __w, g = __game; if (w.st === 1 || w.st === 0) { w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.wanderT = 9; w.wx = w.x; w.wz = w.z; g.me.x = w.x; g.me.z = w.z - 60; } }" if os.environ.get('FMIDLE') else None)); J('window.__fyFix = null')      # S2 FMIDLE=1（同 seqQ G1）：招式結束後不追、不閒晃，片尾停得住
+        vhold(int(os.environ.get('PHOLD', '0')), float(a[1]))      # S2 PHOLD：出招前人站在正前方、蛇只轉頭（d<7.5）站定 PHOLD 步，外觀朝向追上遊戲朝向（不然第 0～7 格整條甩 44°）
+        os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force', a, J(FORCE, [a[0]] + [float(x) for x in a[1:5]])); os.environ.get('FMA') and J("([d, a]) => { const v = __v, g = __game; g.me.x = v.x + Math.sin(v.f + a) * d; g.me.z = v.z + Math.cos(v.f + a) * d; }", [float(a[1]), float(os.environ['FMA'])]); run('m%d_%s' % (q, a[0]), int(a[5]) if len(a) > 5 else 200, each=("() => { const w = __w, g = __game; if (w.st === 1 || w.st === 0) { w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.wanderT = 9; w.wx = w.x; w.wz = w.z; g.me.x = w.x; g.me.z = w.z - 60; } }" if os.environ.get('FMIDLE') else None)); J('window.__fyFix = null')      # S2 FMIDLE=1（同 seqQ G1）：招式結束後不追、不閒晃，片尾停得住
     if 's' in SC: settle(); print('force spin', J(FORCE, ['boar_spin', 2.4, 0.5, 0.3, 0.6])); run('s_spin', 200)
     if 'k' in SC: settle(); print('force kick', J(FORCE, ['deer_kick', -2.4, 0.36, 0.2, 0.45])); run('k_kick', 140)
     if 'h' in SC: settle(); J("() => { window.__t8 = 0; }"); run('h_warn', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
-    if 'i' in SC: settle(); FX(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } else if (%s) { const g = __game; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.wanderT = 9; w.wx = w.x; w.wz = w.z; g.me.x = w.x; g.me.z = w.z - 60; } }" % ('true' if os.environ.get('IHOLD2') else 'false'))      # S2 IHOLD2=1（同 seqQ C1）：被打完站著不動
-    if 'j' in SC: settle(int(os.environ.get('JSET', '90'))); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 260)
+    if 'i' in SC: settle(); vhold(int(os.environ.get('PHOLD', '0'))); FX(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } else if (%s) { const g = __game; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.wanderT = 9; w.wx = w.x; w.wz = w.z; g.me.x = w.x; g.me.z = w.z - 60; } }" % ('true' if os.environ.get('IHOLD2') else 'false'))      # S2 IHOLD2=1（同 seqQ C1）：被打完站著不動
+    if 'j' in SC: settle(int(os.environ.get('JSET', '90'))); vhold(int(os.environ.get('PHOLD', '0'))); FX(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 260)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
