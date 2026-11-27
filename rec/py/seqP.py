@@ -92,7 +92,7 @@ with sync_playwright() as p:
             if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
-    if 'a' in SC: settle(); print('RB', J('JSON.stringify(__v.model.lx && { RB: __v.model.lx.RB, L: __v.model.lx.LEGS.map(L => [L.id, +L.l1.toFixed(3), +L.l2.toFixed(3), +L.l3.toFixed(3), +L.l4.toFixed(3)]), FIT: { w: __v.model.lx.FIT.walk.v, t: __v.model.lx.FIT.trot.v, g: __v.model.lx.FIT.gallop.v }, k: __v.model.lx.k })'), flush=True); run('a_walk', 240)
+    if 'a' in SC: settle(); print('RB', J('JSON.stringify(__v.model.lx && { RB: __v.model.lx.RB, L: __v.model.lx.LEGS.map(L => [L.id, +L.l1.toFixed(3), +L.l2.toFixed(3), +L.l3.toFixed(3), +L.l4.toFixed(3)]), FIT: { w: __v.model.lx.FIT.walk.v, t: __v.model.lx.FIT.trot.v, g: __v.model.lx.FIT.gallop.v }, k: __v.model.lx.k })'), flush=True); (J("() => { const w = __w; w.st = 0; w.t = 0; w.target = null; w.wanderT = 99; w.wx = w.x + Math.sin(w.f) * %s; w.wz = w.z + Math.cos(w.f) * %s; }" % (os.environ.get('AWX'), os.environ.get('AWX'))) if os.environ.get('AWX') else 0); run('a_walk', 240)      # 11-27 P2 AWX=公尺：走路段改成朝目前面向直走到前方 AWX 公尺的點（SUNSIDE 會把閒晃釘住，原本的走路段變成站著不動；也讓片內速度固定）
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
       const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > keep) { g.me.x = v.x - dx / d * keep; g.me.z = v.z - dz / d * keep; } w.cd = 9; }"""
     def flee(name, d0, keep, steps, skip=0):
