@@ -4,7 +4,6 @@ import sys, os
 src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seq2.py')).read().split('\n')
 exec('\n'.join(src[:56]))
 INIT += '; { const d0 = Date.now(), b = (Math.floor(d0 / 1000 / 4608) * 4608 + 3000) * 1000; Date.now = () => b + (window.__t != null ? window.__t - (window.__tD0 ??= window.__t) : 0); }'      # 11-27 Q1：天氣照遊戲步進時間（固定在無雨時段），整段錄影亮度一致
-if os.environ.get('SEED'): INIT += '; { let a = %d >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }' % int(os.environ['SEED'])      # 11-27 B1 SEED：固定亂數（野獸 AI 閒晃每次不同，同一段前後版本才能逐格比對）
 SETUP = SETUP.replace("c !== root && !(c.getObjectById && c.getObjectById(root.id))", "c !== root && c !== window.__keep && !(c.getObjectById && c.getObjectById(root.id))")      # Q2：KEEPME=1 錄影時留下玩家（沼蟒扭絞纏著的人）
 SETUP = SETUP.replace('fy = root.rotation.y', 'fy = (window.__fyFix != null ? window.__fyFix : root.rotation.y)')
 SETUP = SETUP.replace("view === 'front' ? fw :", "view === 'front' ? fw : view === 'b45' ? [(-fw[0] + rt[0]) * s2, (-fw[1] + rt[1]) * s2] :")      # Q2：斜後方視角 b45      # FIXCAM：鏡頭方向固定在世界（看得到轉身）          # 沿用 seq2 的 INIT／SETUP（確定性步進、棚拍鏡頭）
@@ -28,10 +27,11 @@ with sync_playwright() as p:
     J(RESET)
     for i in range(240): adv()
     if os.environ.get('PRB'): print('RB', J("JSON.stringify({rb: __v.model.lx && __v.model.lx.RB, k: __v.model.lx && __v.model.lx.k, wlen: __v.model.lx && __v.model.lx.SIZE.len * __v.model.lx.k * __v.model.root.scale.x, wh: __v.model.lx && __v.model.lx.SIZE.h * __v.model.lx.k * __v.model.root.scale.x, size: __v.model.lx && __v.model.lx.SIZE, legs: __v.model.lx && __v.model.lx.LEGS.map(L => ({id: L.id, sE: L.sE, sW: L.sW, mE0: +(L.mE0*57.3).toFixed(1), mW0: +(L.mW0*57.3).toFixed(1), l: [L.l1,L.l2,L.l3,L.l4].map(x=>+x.toFixed(3)), hy: +L.hy.toFixed(3), d0: +L.d0.toFixed(3), dMax: +L.dMax.toFixed(3)})), bad: window.__lynx20 && __lynx20.bad && __lynx20.bad()})"), flush=True)
-    def settle(n=90):
+    def settle(n=90):      # 11-27 B1：先等新模型建好，再重設亂數＋RESET＋步進（等模型的步數每次不同，AI 閒晃會不一樣；重設後同一段前後版本可逐格比對）
+        if not J('!!(window.__v && __v.model && __v.model.lx)'): need()
+        J("() => { let s = 7; Math.random = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }")
         J(RESET)
         for i in range(n): adv()
-        if not J('!!(window.__v && __v.model && __v.model.lx)'): need(); J(RESET); [adv() for i in range(n)]
     def run(name, steps, every=4, each=None):
         every = int(os.environ.get('EVERY', every))
         k = 0
