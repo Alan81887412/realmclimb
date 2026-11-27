@@ -46,7 +46,12 @@ with sync_playwright() as p:
         J(RESET)
         J('() => { if (__v.model && __v.model.lx) __v.model.lx.ctl.vyW = null; }')      # 外觀朝向直接對齊遊戲朝向（不然下一段開頭還在慢慢轉回來）
         for i in range(n): adv()
+    def __waitlx():      # 雲端機器載模型比較慢：等新模型（lx）建好才開始錄（原本第一格就讀 __v.model.lx 會出錯）
+        for _ in range(3000):
+            if J('!!(__v.model && __v.model.lx)'): return
+            adv()
     def run(name, steps, every=4, each=None):
+        __waitlx()
         k = 0; J('window.__mvS = 0')
         if os.environ.get('FIXALL'): J('window.__fyFix = __v.model.root.rotation.y')      # FIXALL=1：每段鏡頭朝向都固定在世界（遊戲邏輯朝向一格轉很多時，鏡頭不跟著甩）
         for i in range(steps):
