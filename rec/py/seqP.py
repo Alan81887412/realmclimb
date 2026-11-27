@@ -40,6 +40,7 @@ with sync_playwright() as p:
             adv()
     def run(name, steps, every=4, each=None):
         __waitlx()
+        steps = int(dict(x.split(':') for x in os.environ.get('XN', '').split(',') if ':' in x).get(name[0], steps))      # 11-27 P1：XN=q:680,i:320 改各段錄幾步（錄到動作真的停住）
         every = int(os.environ.get('EVERY', every))
         k = 0; J('window.__mvS = 0')
         if os.environ.get('FIXALL'): J('window.__fyFix = __v.model.root.rotation.y')      # FIXALL=1：每段鏡頭朝向都固定在世界（遊戲邏輯朝向一格轉很多時，鏡頭不跟著甩）
