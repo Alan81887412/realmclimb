@@ -63,6 +63,7 @@ with sync_playwright() as p:
     def run(name, steps, every=4, each=None):
         __waitlx()
         k = 0; J('window.__mvS = 0')
+        cn0 = J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0])')      # 11-27 M1：rlUp／swQ.hx 生效次數（段落前後）
         if os.environ.get('FIXALL'): J('window.__fyFix = __v.model.root.rotation.y')      # FIXALL=1：每段鏡頭朝向都固定在世界（遊戲邏輯朝向一格轉很多時，鏡頭不跟著甩）
         for i in range(steps):
             if each: J(each)
@@ -73,6 +74,7 @@ with sync_playwright() as p:
                 if os.environ.get('SPD'): print('SP', name, k, r.get('st'), r.get('sp'), r.get('run'), r.get('sc'), flush=True)
                 grab(page, name, k); k += 1
         print(name, 'frames', k, 'last', {a: r.get(a) for a in ('st', 'stT', 'd')}, flush=True)
+        print('CNT', name, cn0, J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0])'), flush=True)
         if os.environ.get('FIXALL'): J('window.__fyFix = null')
     J('window.__dy = 0.2')
     SC = os.environ.get('SC', 'c,s,k,h,i,j').split(',')
