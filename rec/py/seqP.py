@@ -46,11 +46,11 @@ with sync_playwright() as p:
         __waitlx()
         steps = int(dict(x.split(':') for x in os.environ.get('XN', '').split(',') if ':' in x).get(name[0], steps))      # 11-27 P1：XN=q:680,i:320 改各段錄幾步（錄到動作真的停住）
         every = int(os.environ.get('EVERY', every))
-        k = 0; J('window.__mvS = 0')
+        k = 0; J('window.__mvS = 0; window.__mvH = null')
         if os.environ.get('FIXALL'): J('window.__fyFix = __v.model.root.rotation.y')      # FIXALL=1：每段鏡頭朝向都固定在世界（遊戲邏輯朝向一格轉很多時，鏡頭不跟著甩）
         for i in range(steps):
             if each: J(each)
-            if os.environ.get('REST'): J("() => { const w = __w, v = __v, g = __game; if (w.st >= 2 && w.st <= 5) window.__mvS = 1; else if (window.__mvS && (w.st === 0 || w.st === 1 || w.st === 7)) { w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.fleeFrom = null; w.cd = 9; g.me.x = v.x; g.me.z = v.z - 60; } }")      # REST=1：招式做完、回到走跑時把玩家移遠，野獸停下來站好（片段錄到動作真的停住）
+            if os.environ.get('REST'): J("() => { const w = __w, v = __v, g = __game; if (w.st >= 2 && w.st <= 5) { window.__mvS = 1; if (w.st === 4) { g.me.x = v.x; g.me.z = v.z - 60; } } else if (window.__mvS && (w.st === 0 || w.st === 1 || w.st === 7)) { w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.fleeFrom = null; w.cd = 9; g.me.x = v.x; g.me.z = v.z - 60; if (!window.__mvH) window.__mvH = [w.x, w.z]; } if (window.__mvH && w.st === 0) { w.wanderT = 99; w.wx = window.__mvH[0]; w.wz = window.__mvH[1]; } }")      # 11-27 P1：收招（st 4）時玩家先移遠（倒衝收招不會再接一次往後蹬）；回到待機後原地站著不閒晃（片段錄到真的停住）      # REST=1：招式做完、回到走跑時把玩家移遠，野獸停下來站好（片段錄到動作真的停住）
             r = adv()
             if i % every == 0:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
