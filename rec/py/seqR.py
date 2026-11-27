@@ -90,7 +90,7 @@ with sync_playwright() as p:
             if (ok > 20 or k > 0) and i % 4 == 0: grab(page, name, k); k += 1
             if k >= nmax: break
         print(name, 'frames', k, 'last', r, flush=True)
-    if 'w' in SC: settle(); J("() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 9; g.me.z = v.z + Math.cos(v.f) * 9; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.seen = {}; }"); run('w_warn', 300, each="() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 9; g.me.z = v.z + Math.cos(v.f) * 9; w.provoked = false; }")      # 11-27 Q1：熊是領域型，玩家站在領域裡（9 公尺）讓遊戲自己進威嚇（原本硬設 st=8 會被熊的 AI 改回 0）
+    if 'w' in SC: settle(); J("() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 9; g.me.z = v.z + Math.cos(v.f) * 9; w.st = 0; w.t = 0; w.target = null; w.provoked = false; w.cd = 9; w.seen = {}; }"); run('w_warn', int(os.environ.get('WN', '300')), each="() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 9; g.me.z = v.z + Math.cos(v.f) * 9; w.provoked = false; }")      # 11-27 Q1：熊是領域型，玩家站在領域裡（9 公尺）讓遊戲自己進威嚇（原本硬設 st=8 會被熊的 AI 改回 0）
     if 's' in SC: settle(); print('force slam', J(FORCEC, ['bear_slam', 3.0, 0.95, 0.22, 0.95, None, 2])); run('s_slam', 360)
     if 'x' in SC: settle(); print('force swipe', J(FORCEC, ['bear_swipe', 3.0, 0.68, 0.26, 0.7, None, 2])); run('x_swipe', 300)
     if 'c' in SC: settle(); print('force charge', J(FORCEC, ['bear_charge', 10.0, 0.9, 0.7, 1.2, None, 2])); run('c_charge', 380)
