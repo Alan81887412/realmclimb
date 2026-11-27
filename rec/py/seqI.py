@@ -54,8 +54,10 @@ with sync_playwright() as p:
     def run(name, steps, every=4, each=None):
         __waitlx()
         k = 0
+        HSF = [float(x) for x in os.environ['HSF'].split(':')] if os.environ.get('HSF') else None      # 11-27 A1：HSF=步數:秒 在第幾步強制一次命中停頓（重現 i03h，不靠運氣撞到玩家）
         for i in range(steps):
             if each: J(each)
+            if HSF and i == int(HSF[0]): J('window.__fx.hitstop = %f' % HSF[1])
             r = adv()
             if i % every == 0:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
