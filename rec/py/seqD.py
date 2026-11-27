@@ -74,7 +74,7 @@ with sync_playwright() as p:
             if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
-    if 'a' in SC: settle(); J('() => { const w = __w; w.wx = w.x; w.wz = w.z + 16 * %s; w.wanderT = 99; }' % os.environ.get('AWD', '1')); os.environ.get('AWD') and J('window.__fyFix = __v.model.root.rotation.y'); run('a_walk', int(os.environ.get('AN', '720')), each='() => { __w.wanderT = 99; }'); J('window.__fyFix = null')      # 11-27 D2 AWD=-1：往反方向走（先原地轉 180° 再走；鏡頭固定在世界）＝左右不對稱測試      # 11-27 審核：原本 2 秒內只踏 5 格就站著（遊戲閒晃），改成跟野牛一樣指定 16 公尺外的走路目標
+    if 'a' in SC: settle(); [(J('() => { __w.wanderT = 99; __w.st = 0; }'), adv()) for _ in range(int(os.environ.get('APRE', '0')))]; J('() => { const w = __w; w.wx = w.x; w.wz = w.z + 16 * %s; w.wanderT = 99; }' % os.environ.get('AWD', '1')); os.environ.get('AWD') and J('window.__fyFix = __v.model.root.rotation.y'); run('a_walk', int(os.environ.get('AN', '720')), each='() => { __w.wanderT = 99; }'); J('window.__fyFix = null')      # 11-27 D2 APRE：給走路目標前先站著跑幾步（雲端偶爾第 10～30 格遊戲把鹿搬位置）      # 11-27 D2 AWD=-1：往反方向走（先原地轉 180° 再走；鏡頭固定在世界）＝左右不對稱測試      # 11-27 審核：原本 2 秒內只踏 5 格就站著（遊戲閒晃），改成跟野牛一樣指定 16 公尺外的走路目標
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
       const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > keep) { g.me.x = v.x - dx / d * keep; g.me.z = v.z - dz / d * keep; } w.cd = 9; }"""
     def flee(name, d0, keep, steps, skip=0):
