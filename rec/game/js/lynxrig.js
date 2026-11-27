@@ -1163,7 +1163,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
     if (a2 && S.C) { const q2 = Q().setFromAxisAngle(X1, a2); root.position.sub(S.C).applyQuaternion(q2).add(S.C); root.quaternion.premultiply(q2); }
     if (th && S.E) { const q3 = Q().setFromAxisAngle(Z1, th); root.position.sub(S.E).applyQuaternion(q3).add(S.E); root.quaternion.premultiply(q3); } root.updateMatrixWorld(true); };
   const frontMin = () => Math.min(mn(P.LF), mn(P.RF));
-  if (S.A1 == null) { const fk = (a) => { resetPose(); setBody(a, 0, 0); for (const L of FL) foldF(L, 1); root.updateMatrixWorld(true); return frontMin(); }; let lo = 0, hi = 0.9; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (fk(m) > 0) lo = m; else hi = m; } S.A1 = (lo + hi) / 2; resetPose(); }      /* 前腕剛好著地的前傾角 */
+  if (S.A1 == null) { const fk = (a) => { resetPose(); setBody(a, 0, 0); for (const L of FL) foldF(L, 1); root.updateMatrixWorld(true); return frontMin(); }; let lo = 0, hi = 0.9; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (fk(m) > 0) lo = m; else hi = m; } S.A1 = Math.min((lo + hi) / 2, (K.a1m ?? 28) * D2R); resetPose(); }      /* 前腕剛好著地的前傾角 */
   if (t >= T1 && !S.C) { resetPose(); setBody(S.A1, 0, 0); for (const L of FL) foldF(L, 1); root.updateMatrixWorld(true); const c = V(); for (const L of FL) c.add(wp(L.w)); c.multiplyScalar(0.5); c.y = 0; S.C = c;      /* 前腕觸地點（兩前腕中點）＝第②段支點 */
     const fb = (a) => { resetPose(); setBody(S.A1, a, 0); for (const L of FL) foldF(L, 1); for (const L of HL) foldH(L, 1); root.updateMatrixWorld(true); return Math.min(mn(P.body), mn(P.LH), mn(P.RH)); }; let lo = -0.9, hi = 0; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (fb(m) > 0) hi = m; else lo = m; } S.A2 = (lo + hi) / 2; resetPose(); }      /* 後半身放到腹部／折起的後腳碰地為止 */
   if (t >= T2 && !S.E) { resetPose(); setBody(S.A1, S.A2, 0); root.updateMatrixWorld(true); let w = 0; const v = V(); for (const p of P.body) { p.m.getVertexPosition(p.i, v); p.m.localToWorld(v); stage.worldToLocal(v); if (v.y < 0.25) w = Math.max(w, -side * v.x); } S.E = V(-side * (K.ew ?? 0.75) * w, 0, Hp.z * 0.5); resetPose(); }      /* 翻身軸：倒下那側腹部外緣的地面線 */
@@ -1174,7 +1174,7 @@ function kd4(t, dt, hitSide) { const K = OPT.kd4, T1 = K.t1 ?? 0.42, T2 = K.t2 ?
   if (t < T2 + 0.2) { const m = frontMin(), w = t >= T1 ? 1 - sm(T2, T2 + 0.2, t) : (m < 0 ? 1 : 0); if (w > 0) { root.position.y -= m * w; root.updateMatrixWorld(true); } }      /* 前腕（或折起的前腳）不穿地；跪下後前腕一直貼地到開始翻身 */
   const tr = T1 + (K.hrT ?? 0.35) * (T2 - T1);
   for (const L of HL) { const s = S.st[L.id], c = L.c;
-    if (s.s === 'P' && (t >= tr || (L.dbg && L.dbg.r > (K.rr ?? 0.93)))) { const h = wp(L.h); s.s = 'R'; s.t0 = t; s.P0 = h.clone(); s.V0 = h.clone().sub(S.hp[L.id]).divideScalar(Math.max(dt, 1e-4)); }
+    if (s.s === 'P' && (t >= tr || (t > T1 && L.dbg && L.dbg.r > (K.rr ?? 0.97)))) { const h = wp(L.h); s.s = 'R'; s.t0 = t; s.P0 = h.clone(); s.V0 = h.clone().sub(S.hp[L.id]).divideScalar(Math.max(dt, 1e-4)); }
     if (s.s === 'R' || s.s === 'F') { const k = lerp(1, K.hL ?? 0.85, e3); foldH(L, k); root.updateMatrixWorld(true); }
     if (s.s === 'F') { const h = wp(L.h); S.hp[L.id] = h; continue; }
     const qF = L.ch.map(b => b.quaternion.clone()), P1 = wp(L.h), V1 = S.p1[L.id] ? P1.clone().sub(S.p1[L.id]).divideScalar(Math.max(dt, 1e-4)) : V(); S.p1[L.id] = P1.clone();
