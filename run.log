@@ -1,0 +1,9 @@
+setup {'n': 89, 'id': 56}
+tex 0 assets/meshy/bear_tx_a.jpg 3
+0 [0.9, 0.8, 0.9, 1.2, 0.89, 0.95] mats 1
+tex 1 assets/meshy/bear_tx_b.jpg 3
+0 [0.9, 0.8, 0.9, 1.2, 0.89, 0.95] mats 1
+tex 2 assets/meshy/bear_tx_c.jpg 3
+0 [0.9, 0.8, 0.9, 1.2, 0.89, 0.95] mats 1
+EXIT 0
+DONE
