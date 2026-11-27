@@ -66,7 +66,7 @@ with sync_playwright() as p:
     J('window.__dy = ' + os.environ.get('DY', '0.2'))
     if os.environ.get('KEEPME'): print('keep0', J('(() => { window.__keep = __game.me.avatar && __game.me.avatar.group; return !!window.__keep; })()'), flush=True)
     if os.environ.get('LOOKY'): J('window.__lookY = ' + os.environ['LOOKY'])      # S1：鏡頭看的高度＝地面上 LOOKY 公尺（原本是 0.5×舊模型縮放＋DY，蛇會跑到畫面下緣）；每次拍照時依當下縮放算
-    if os.environ.get('PYT7'): print('test7', J('(() => { __w.test7 = true; return true; })()'), flush=True)
+    if os.environ.get('PYT7'): print('test7', J('(() => { __w.test7 = true; __place(86); return true; })()'), flush=True)
     SC = os.environ.get('SC', 'c,s,k,h,i,j').split(',')
     def chase(name, nmax):
         J('() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 34; g.me.z = v.z + Math.cos(v.f) * 34; w.st = 1; w.t = 0; w.target = "self"; w.provoked = true; w.cd = 9; w.seen = {}; }'); k = 0; ok = 0
