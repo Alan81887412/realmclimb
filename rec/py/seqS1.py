@@ -8,6 +8,7 @@ INIT += '; { const d0 = Date.now(), b = (Math.floor(d0 / 1000 / 4608) * 4608 + 3
 SETUP = SETUP.replace("c !== root && !(c.getObjectById && c.getObjectById(root.id))", "c !== root && c !== window.__keep && !(c.getObjectById && c.getObjectById(root.id))")      # Q2：KEEPME=1 錄影時留下玩家（沼蟒扭絞纏著的人）
 SETUP = SETUP.replace("px = root.position.x, py = root.position.y, pz = root.position.z", "px = root.position.x, py = root.position.y, pz = root.position.z; if (m.lx && m.lx.stage) { const _p = m.lx.stage.getWorldPosition(new TH.Vector3()); px = _p.x; pz = _p.z; }").replace("const m = v.model, root = m.root, fy = root.rotation.y, px", "const m = v.model, root = m.root; let fy = root.rotation.y, px")      # 11-27 B1：鏡頭對準外觀位置（新引擎 stage，可能因 cuS 平滑而落後遊戲邏輯位置），不然遊戲一格搬動野獸時畫面會跳
 SETUP = SETUP.replace("px = _p.x; pz = _p.z; }", "px = _p.x; pz = _p.z; } if (m.lx && m.lx.snake) { const c = new TH.Vector3(), q = new TH.Vector3(); let n = 0; m.lx.model.traverse(o => { if (o.isBone) { o.getWorldPosition(q); c.add(q); n++; } }); if (n) { px = c.x / n; pz = c.z / n; } }")      # S1：蛇的鏡頭對準整條身體骨頭的平均位置（stage 原點不在身體中間，畫面會偏）
+SETUP = SETUP.replace("gm.position.set(px, py + 0.02, pz)", "gm.position.set(px, (window.__gy0 != null ? window.__gy0 : py) + 0.02, pz)").replace("px = _p.x; pz = _p.z; }", "px = _p.x; pz = _p.z; } window.__gy0 = null; if (m.lx && m.lx.RB && m.lx.RB.bird && window.__birdCam) { const _h = m.lx.root.getWorldPosition(new TH.Vector3()); window.__gy0 = py; px = _h.x; pz = _h.z; py = _h.y; }")      # S1：BIRDCAM=1 鏡頭跟著鳥飛（高度、盤旋位置），地面圓盤留在原地
 SETUP = SETUP.replace('fy = root.rotation.y', 'fy = (window.__fyFix != null ? window.__fyFix : root.rotation.y)')
 SETUP = SETUP.replace("const sc = root.scale.x, cy = py + 1.6 + D * 0.04 + (window.__dy || 0);", "const sc = root.scale.x; if (window.__lookY != null) window.__dy = window.__lookY - 0.5 * sc; const cy = view === 'top' ? py + D * 1.5 : py + 1.6 + D * 0.04 + (window.__dy || 0); if (view === 'top') { dir[0] = -fw[0] * 0.02; dir[1] = -fw[1] * 0.02; }").replace("const s2 = Math.SQRT1_2, dir =", "const s2 = Math.SQRT1_2; let dir =")      # S1：top＝正上方往下看（量蛇的左右波動用，不交審）
 SETUP = SETUP.replace("view === 'front' ? fw :", "view === 'front' ? fw : view === 'b45' ? [(-fw[0] + rt[0]) * s2, (-fw[1] + rt[1]) * s2] :")      # Q2：斜後方視角 b45      # FIXCAM：鏡頭方向固定在世界（看得到轉身）          # 沿用 seq2 的 INIT／SETUP（確定性步進、棚拍鏡頭）
@@ -66,6 +67,7 @@ with sync_playwright() as p:
     J('window.__dy = ' + os.environ.get('DY', '0.2'))
     if os.environ.get('KEEPME'): print('keep0', J('(() => { window.__keep = __game.me.avatar && __game.me.avatar.group; return !!window.__keep; })()'), flush=True)
     if os.environ.get('LOOKY'): J('window.__lookY = ' + os.environ['LOOKY'])      # S1：鏡頭看的高度＝地面上 LOOKY 公尺（原本是 0.5×舊模型縮放＋DY，蛇會跑到畫面下緣）；每次拍照時依當下縮放算
+    if os.environ.get('BIRDCAM'): J('window.__birdCam = true')
     if os.environ.get('PYT7'): print('test7', J('(() => { __w.test7 = true; __place(86); return true; })()'), flush=True)
     SC = os.environ.get('SC', 'c,s,k,h,i,j').split(',')
     def chase(name, nmax):
