@@ -18,6 +18,7 @@ if os.environ.get('CHKG'):      # 11-27 B2 CHKG=1（水豚錄影用）：照 seq
 def grab(page, name, k, D=None):
     D = D or float(os.environ.get('CAMD', 7))
     if os.environ.get('NOFADE'): page.evaluate("() => { __v.model.root.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const M of ms) { const U = M.userData && M.userData.mfx; if (U && __w.st !== 6) { U.fade.value = 1; M.opacity = 1; } } }); }")      # 錄影用：關掉遊戲『大型野獸擋住鏡頭時變網點』的功能（錄影鏡頭不是遊戲鏡頭）
+    if os.environ.get('KEEPME'): page.evaluate("() => { if (window.__keep) window.__keep.visible = true; }")      # 11-27 G2：KEEPME 時玩家（被抓的人）一律畫出來（遊戲受擊無敵閃爍會把它藏起來，錄影裡看起來像玩家消失）
     for vw in os.environ.get('VIEWS', 'side,d45').split(','):
         u = page.evaluate("([a,b]) => window.__shot(a,b)", [vw, D]); open(f'{outd}/{name}_{vw}_{k:03d}.jpg', 'wb').write(base64.b64decode(u.split(',', 1)[1]))
 RESET = "() => { const v = __v, w = __w, g = __game; w.st = 0; w.t = 0; w.target = null; w.M = null; w.mvc = 0; w.hp = w.hpMax || w.hp; __place(v.z); g.me.x = v.x; g.me.z = v.z - 60; }"
