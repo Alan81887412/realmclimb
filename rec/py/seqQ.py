@@ -66,7 +66,11 @@ with sync_playwright() as p:
             if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
-    FX = lambda: os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y')      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
+    def need():      # 11-27 B1：settle 之後模型有時還沒建（__v.model 是 null），先步進到模型出現再固定鏡頭
+        for i in range(600):
+            if J('!!(__v.model && __v.model.root)'): return
+            adv()
+    FX = lambda: (need(), os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'))      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
     if 'a' in SC: settle(); FX(); run('a_walk', 240); J('window.__fyFix = null')
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
       const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > keep) { g.me.x = v.x - dx / d * keep; g.me.z = v.z - dz / d * keep; } w.cd = 9; }"""
@@ -100,7 +104,7 @@ with sync_playwright() as p:
     if 'c' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force charge', J(FORCE, (lambda a: [a[0]] + [float(x) for x in a[1:]])(os.environ.get('CHG', 'deer_charge,7.0,0.55,0.4,0.6').split(',')))); run('c_charge', int(os.environ.get('CN', '230'))); J('window.__fyFix = null')
     if 'w' in SC: settle(); run('w_idle', 200)
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); J('() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 20; g.me.z = v.z + Math.cos(v.f) * 20; w.st = 1; w.t = 0; w.target = "self"; w.provoked = true; w.cd = 9; w.seen = {}; }'); run('q_chase', 200, each='() => { const w = __w; w.cd = 9; if (w.st >= 2 && w.st <= 4) { w.st = 1; w.t = 0; } }'); J('window.__fyFix = null')
-    if 't' in SC: settle(); J('() => { window.__tk = 0; const g = __game, v = __v; g.me.x = v.x + 25; g.me.z = v.z - 8; }'); J('window.__fyFix = __v.model.root.rotation.y'); run('t_turn', 200, each="() => { const w = __w, v = __v; if (++window.__tk === 40) { w.f += 1.3; v.f = w.f; } const g = __game; g.me.x = v.x + 25; g.me.z = v.z - 8; if (window.__tk === 130) { w.f -= 2.2; v.f = w.f; } }")
+    if 't' in SC: settle(); need(); J('() => { window.__tk = 0; const g = __game, v = __v; g.me.x = v.x + 25; g.me.z = v.z - 8; }'); J('window.__fyFix = __v.model.root.rotation.y'); run('t_turn', 200, each="() => { const w = __w, v = __v; if (++window.__tk === 40) { w.f += 1.3; v.f = w.f; } const g = __game; g.me.x = v.x + 25; g.me.z = v.z - 8; if (window.__tk === 130) { w.f -= 2.2; v.f = w.f; } }")
     for q, fm in enumerate([x for x in os.environ.get('FM', '').split(';') if x]):
         a = fm.split(','); settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force', a, J(FORCE, [a[0]] + [float(x) for x in a[1:5]])); run('m%d_%s' % (q, a[0]), int(a[5]) if len(a) > 5 else 200); J('window.__fyFix = null')
     if 's' in SC: settle(); print('force spin', J(FORCE, ['boar_spin', 2.4, 0.5, 0.3, 0.6])); run('s_spin', 200)

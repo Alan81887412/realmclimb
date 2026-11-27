@@ -43,6 +43,7 @@ with sync_playwright() as p:
     J(RESET)
     for i in range(240): adv()
     def settle(n=90):
+        __waitlx()      # 11-27 A1：雲端載模型慢，第一段開頭 __v.model 還是 null（被打段的 FIXCAM 讀 root 會出錯）
         J(RESET)
         J('() => { if (__v.model && __v.model.lx) __v.model.lx.ctl.vyW = null; }')      # 外觀朝向直接對齊遊戲朝向（不然下一段開頭還在慢慢轉回來）
         for i in range(n): adv()
