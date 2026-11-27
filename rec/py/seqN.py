@@ -76,13 +76,13 @@ with sync_playwright() as p:
         print(name, 'frames', k, flush=True)
     if 'a' in SC: settle(); J('() => { const w = __w; w.wx = w.x; w.wz = w.z + 16; w.wanderT = 99; }'); run('a_walk', int(os.environ.get('AN', '720')), each='() => { __w.wanderT = 99; }')
     if 'r' in SC: settle(); chase('r_run', 40)
-    # 11-27 N4：PHOLD＝甩角（o）、後踢（k）出招前先原地站定幾步（settle 後還在閒晃、腳還在跨，出招第 1～3 格只剩一隻腳撐地）
+    # 11-27 N4：MHOLD=1＝甩角／後踢招式結束後原地站穩（不接 AI 下一招／追擊），片尾錄得到動作停住。PHOLD＝甩角（o）、後踢（k）、倒地（j）出招前先原地站定幾步（settle 後還在閒晃、腳還在跨，出招第 1～3 格只剩一隻腳撐地）
     def face(deg):      # 11-27 N1：固定出生朝向（每次錄影朝向隨機，衝的路線上有時有樹石＝撞暈，前後版本沒法比）；轉完先站定讓外觀朝向追上
         for _ in range(150): J("(f) => { const w = __w, v = __v; w.f = v.f = f; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }", deg / 57.2958); adv()
     if 'g' in SC: settle(); os.environ.get('GF') and face(float(os.environ['GF'])); print('force gore', J(FORCEC, ['bison_gore', 12.0, 1.35, 1.15, 2.4, ['bison_regore'], 2])); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); run('g_gore', int(os.environ.get('GN', '1000'))); J('window.__fyFix = null')
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force regore', J(FORCEC, ['bison_regore', -9.0, 1.0, 1.0, 1.1, None, 2])); run('q_regore', 420); J('window.__fyFix = null')
-    if 'o' in SC: settle(); [J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }") or adv() for _ in range(int(os.environ.get('PHOLD', '0')))]; print('force hook', J(FORCEC, ['bison_hook', 2.6, 0.72, 0.25, 0.75, None, 2])); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); run('o_hook', 260); J('window.__fyFix = null')      # 11-27 探針：甩角後轉身其實每秒約 110°（有限速），是鏡頭跟著遊戲朝向（一格轉 20°）在甩，看起來像牛急轉；鏡頭固定在世界
-    if 'k' in SC: settle(); [J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }") or adv() for _ in range(int(os.environ.get('PHOLD', '0')))]; print('force buck', J(FORCEC, ['bison_buck', -2.6, 0.5, 0.22, 0.6, None, 2])); run('k_buck', 200)
+    if 'o' in SC: settle(); [J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }") or adv() for _ in range(int(os.environ.get('PHOLD', '0')))]; print('force hook', J(FORCEC, ['bison_hook', 2.6, 0.72, 0.25, 0.75, None, 2])); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); J('window.__mh = 0'); run('o_hook', 260, each=("() => { const w = __w; if (window.__mh || (w.st !== 2 && w.st !== 3 && w.st !== 4)) { window.__mh = 1; w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; } }" if os.environ.get('MHOLD') else None)); J('window.__fyFix = null')      # 11-27 探針：甩角後轉身其實每秒約 110°（有限速），是鏡頭跟著遊戲朝向（一格轉 20°）在甩，看起來像牛急轉；鏡頭固定在世界
+    if 'k' in SC: settle(); [J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }") or adv() for _ in range(int(os.environ.get('PHOLD', '0')))]; print('force buck', J(FORCEC, ['bison_buck', -2.6, 0.5, 0.22, 0.6, None, 2])); J('window.__mh = 0'); run('k_buck', 200, each=("() => { const w = __w; if (window.__mh || (w.st !== 2 && w.st !== 3 && w.st !== 4)) { window.__mh = 1; w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; } }" if os.environ.get('MHOLD') else None))
     if 'z' in SC and not os.environ.get('ZB'): settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
     if 'z' in SC and os.environ.get('ZB'):      # 11-27 N4：ZB=1 走遊戲真正的撞暈（beastai07.bump→setDaze：暈的 2.6 秒遊戲不移動野牛）；原本強制 RECOVER＋目標 6 公尺，暈的時候遊戲 AI 還在把牛往前推（每格 3～10cm＝暈著走路）。暈完原地站穩（不接追擊），錄到動作停住
         settle()
@@ -104,7 +104,7 @@ with sync_playwright() as p:
         J("() => { window.__t8 = 0; }"); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y')
         run('i_stagger', int(os.environ.get('IN', '180')), each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } else { w.st = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; } }")      # 11-27 N1：被打結束後原地站穩（不接 AI 閒晃轉向），錄到動作停住
         J('window.__fyFix = null')
-    if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
+    if 'j' in SC: settle(); [J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; w.target = null; }") or adv() for _ in range(int(os.environ.get('PHOLD', '0')))]; J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
     if os.environ.get('RB'): print('RB', J('JSON.stringify(__v.model.lx && __v.model.lx.RB)'), flush=True)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
