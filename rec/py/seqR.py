@@ -46,7 +46,9 @@ with sync_playwright() as p:
     def settle(n=90):
         J(RESET)
         if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; const W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; if (v.model && v.model.lx) v.model.lx.ctl.vyW = null; }')      # SUNSIDE=1（外觀朝向也直接對齊，不然轉速上限低的物種在下一段還在慢慢轉）：野獸朝向讓鏡頭那一側向陽（各段亮度一致）
-        for i in range(n): adv()
+        for i in range(n):
+            if os.environ.get('SUNSIDE'): J('() => { const w = __w, v = __v; let D = null; __game.W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; w.wx = v.x; w.wz = v.z; w.wanderT = 99; if (v.model && v.model.lx && i0 === 0) v.model.lx.ctl.vyW = null; }'.replace('i0 === 0', 'true' if i == 0 else 'false'))      # R1：settle 期間每步都把朝向釘在向陽面、不閒晃，第一步外觀朝向直接對齊（之後腳有時間站好）（原本只設一次，熊閒晃後出招前外觀還差 45～135°，起手原地被拖著轉、後掌滑）
+            adv()
     def __waitlx():      # 雲端機器載模型比較慢：等新模型（lx）建好才開始錄（原本第一格就讀 __v.model.lx 會出錯）
         for _ in range(3000):
             if J('!!(__v.model && __v.model.lx)'): return

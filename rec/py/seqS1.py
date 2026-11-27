@@ -123,9 +123,12 @@ with sync_playwright() as p:
         J('window.__tk = 0')
         run('T_turn', int(os.environ.get('TN', '220')), each="() => { const w = __w, v = __v, g = __game, T = window.__T0, k = ++window.__tk; if (k === 40) T.f += %s; if (k === 130) T.f -= %s; w.x = v.tx = T.x; w.z = v.tz = T.z; w.f = v.f = T.f; w.st = 0; w.t = 0; w.target = null; w.cd = 9; g.me.x = T.x + 40; g.me.z = T.z - 40; }" % (os.environ.get('TA1', '1.3'), os.environ.get('TA2', '2.2')))
         J('window.__fyFix = null')
-    if 'Y' in SC:      # S1：蟒追人滑行。人在前方 YD 公尺、跟著蛇往前走（保持距離＝蛇一直用遊戲實速滑）；第 YT1 步人往左側移 60°（轉彎）；第 YT2 步人停在蛇前 9 公尺（蛇減速停下、轉頭對人）
-        settle(); need(); J("() => { const v = __v, w = __w; window.__yk = 0; window.__Y0 = { f: v.f }; w.st = 1; w.t = 0; w.target = 'self'; w.provoked = true; w.cd = 9; w.seen = {}; }"); J('window.__fyFix = __v.model.root.rotation.y')
-        run('Y_slide', int(os.environ.get('YN', '1200')), each="() => { const v = __v, w = __w, g = __game, k = window.__yk++, Y = window.__Y0, D = %s, T1 = %s, T2 = %s; w.cd = 9; w.target = 'self'; w.provoked = true; if (w.st === 0) w.st = 1; const f = k < T1 ? Y.f : Y.f + 1.05; if (k < T2) { g.me.x = v.x + Math.sin(f) * D; g.me.z = v.z + Math.cos(f) * D; Y.mx = g.me.x; Y.mz = g.me.z; } else if (k === T2) { g.me.x = v.x + Math.sin(f) * 9; g.me.z = v.z + Math.cos(f) * 9; } }" % (os.environ.get('YD', '16'), os.environ.get('YT1', '480'), os.environ.get('YT2', '840')))
+    if 'Y' in SC:      # S1：蟒起步→滑行→停下轉頭。坑蟒滑行一律往自己的獸坑（pitGoal），人只決定滑不滑：先人在前方 5 公尺（盤著轉頭）YPRE 步不錄；第 0～YT1 步同上（錄靜止）；YT1 起人在 20 公尺外（蛇用遊戲實速 3.6 m/s 往坑滑）；YT2 起人在蛇右側 9 公尺（停下、轉頭對人）
+        settle(); need(); J("() => { const v = __v, w = __w, g = __game; window.__yk = -%s; w.st = 1; w.t = 0; w.target = 'self'; w.provoked = true; w.cd = 9; w.seen = {}; }" % os.environ.get('YPRE', '240'))
+        YE = "() => { const v = __v, w = __w, g = __game, k = window.__yk++, T1 = %s, T2 = %s; w.cd = 9; w.target = 'self'; w.provoked = true; if (w.st === 0) w.st = 1; if (k < T1) { const a = Math.atan2(-120 - v.x, -287 - v.z); g.me.x = v.x + Math.sin(a) * 5; g.me.z = v.z + Math.cos(a) * 5; } else if (k < T2) { g.me.x = v.x - Math.sin(v.f) * 20; g.me.z = v.z - Math.cos(v.f) * 20; } else if (k === T2) { const a = v.f + 1.6; g.me.x = v.x + Math.sin(a) * 9; g.me.z = v.z + Math.cos(a) * 9; } }" % (os.environ.get('YT1', '120'), os.environ.get('YT2', '840'))
+        for i in range(int(os.environ.get('YPRE', '240'))): J(YE); adv()
+        J('window.__fyFix = __v.model.root.rotation.y')
+        run('Y_slide', int(os.environ.get('YN', '1200')), each=YE)
         J('window.__fyFix = null')
     if 'Z' in SC:      # S1：蟒原地轉向（人在 5 公尺：正前→第 ZT1 步右 100°→第 ZT2 步左 150°）；蛇只會轉頭對人（d<7.5 遊戲只 face）
         settle(); need(); J("() => { const v = __v, w = __w, g = __game; window.__zk = 0; window.__Z0 = { f: v.f, x: v.x, z: v.z }; w.st = 1; w.t = 0; w.target = 'self'; w.provoked = true; w.cd = 9; w.seen = {}; g.me.x = v.x + Math.sin(v.f) * 5; g.me.z = v.z + Math.cos(v.f) * 5; }")
