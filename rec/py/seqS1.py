@@ -82,7 +82,7 @@ with sync_playwright() as p:
             adv(); page.wait_for_timeout(25)
         print('need: model/lx 一直沒出現', flush=True)
     FX = lambda: (need(), os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'))      # 11-27：鏡頭固定在世界（跟著遊戲朝向轉的鏡頭會讓畫面看起來像急轉）
-    if 'a' in SC: settle(); FX(); run('a_walk', 240); J('window.__fyFix = null')
+    if 'a' in SC: settle(); FX(); run('a_walk', int(os.environ.get('AN', '240'))); J('window.__fyFix = null')
     FLEE = """([d0, keep]) => { const v = __v, w = __w, g = __game; if (d0 != null) { g.me.x = v.x + Math.sin(v.f) * d0; g.me.z = v.z + Math.cos(v.f) * d0; w.target = null; w.fleeFrom = null; w.cd = 9; w.st = 7; w.t = 0; return; }
       const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > keep) { g.me.x = v.x - dx / d * keep; g.me.z = v.z - dz / d * keep; } w.cd = 9; }"""
     def flee(name, d0, keep, steps, skip=0):
@@ -113,7 +113,7 @@ with sync_playwright() as p:
           const dx = v.x - g.me.x, dz = v.z - g.me.z, d = Math.hypot(dx, dz); if (d > 9) { g.me.x = v.x - dx / d * 9; g.me.z = v.z - dz / d * 9; } }""" % pre)
         J('window.__fyFix = null')
     if 'c' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); print('force charge', J(FORCE, (lambda a: [a[0]] + [float(x) for x in a[1:]])(os.environ.get('CHG', 'deer_charge,7.0,0.55,0.4,0.6').split(',')))); run('c_charge', int(os.environ.get('CN', '230'))); J('window.__fyFix = null')
-    if 'w' in SC: settle(); run('w_idle', 200)
+    if 'w' in SC: settle(); run('w_idle', int(os.environ.get('WN', '200')))
     if 'q' in SC: settle(); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y'); J('() => { const v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * 20; g.me.z = v.z + Math.cos(v.f) * 20; w.st = 1; w.t = 0; w.target = "self"; w.provoked = true; w.cd = 9; w.seen = {}; }'); run('q_chase', 200, each='() => { const w = __w; w.cd = 9; if (w.st >= 2 && w.st <= 4) { w.st = 1; w.t = 0; } }'); J('window.__fyFix = null')
     if 't' in SC: settle(); need(); J('() => { window.__tk = 0; const g = __game, v = __v; g.me.x = v.x + 25; g.me.z = v.z - 8; }'); J('window.__fyFix = __v.model.root.rotation.y'); run('t_turn', 200, each="() => { const w = __w, v = __v; if (++window.__tk === 40) { w.f += 1.3; v.f = w.f; } const g = __game; g.me.x = v.x + 25; g.me.z = v.z - 8; if (window.__tk === 130) { w.f -= 2.2; v.f = w.f; } }")
     if 'T' in SC:      # 11-27 B1：站著原地轉身（乾淨版）：位置釘住、AI 不閒晃，只在第 40 步左轉 75°、第 130 步右轉 126°（TA1、TA2 可改角度，弧度）；鏡頭固定在世界
