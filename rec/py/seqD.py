@@ -97,6 +97,6 @@ with sync_playwright() as p:
     if 'k' in SC: settle(); print('force kick', J(FORCE, ['deer_kick', -2.4, 0.36, 0.2, 0.45])); run('k_kick', int(os.environ.get('KN', '140')))
     if 'h' in SC: settle(); J("() => { window.__t8 = 0; }"); run('h_warn', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
     if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")
-    if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 260)
+    if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; window.__jk = 0; }"); run('j_dead', int(os.environ.get('JN', '260')), each=("() => { if (window.__jk++ < %d) { __w.t = 0; __v.stT = 0; } }" % int(os.environ.get('JHOLD', '0'))) if os.environ.get('JHOLD') else None)      # 11-27 D3 JHOLD=n：倒地開頭 n 步把倒地時間釘在 0（雲端第一步遊戲時間一次跳約 0.2 秒，第 1 格就已經折腿折到一半）
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
