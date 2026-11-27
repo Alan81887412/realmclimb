@@ -7,7 +7,15 @@ exec('\n'.join(src[:56]))
 INIT += '; { const d0 = Date.now(), b = (Math.floor(d0 / 1000 / 4608) * 4608 + 3000) * 1000, RN = Date.now.bind(Date); Date.now = () => b + (window.__t != null ? window.__t - (window.__tD0 ??= window.__t) : 0); }'      # 11-27 Q1：Date.now 跟著遊戲步進時間走（原本跟真實時鐘走，錄 20～30 分鐘會跨進下一段天氣，前後段亮度差到一倍）      # 錄影用：遊戲天氣照現實時鐘排雨（weather08），固定在每段的無雨時段，畫面亮度、野獸察覺距離每次都一樣
 SETUP = SETUP.replace("new TH.MeshStandardMaterial({ color: 0x5f8a3c, roughness: 1 })", "new TH.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#5f8a3c'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#527a33'; x.fillRect(0, 0, 32, 32); x.fillRect(32, 32, 32, 32); const t = new TH.CanvasTexture(c); t.wrapS = t.wrapT = TH.RepeatWrapping; t.repeat.set(60, 60); t.colorSpace = TH.SRGBColorSpace; window.__gtex = t; return t; })() })").replace("gm.position.set(px, py + 0.02, pz);", "gm.position.set(px, py + 0.02, pz); if (window.__gtex) window.__gtex.offset.set(px / 2, -pz / 2);")      # 錄影地面：2 公尺一格的棋盤格，格子固定在世界上（鏡頭跟著平移時看得出移動、腳有沒有滑）
 SETUP = SETUP.replace('fy = root.rotation.y', 'fy = (window.__fyFix != null ? window.__fyFix : root.rotation.y)')      # FIXCAM：鏡頭方向固定在世界（看得到回身）          # 沿用 seq2 的 INIT／SETUP（確定性步進、棚拍鏡頭）
+if os.environ.get('TGND'):      # 11-27 M2 TGND=1（照 seqD D2）：錄影地面改成照真實地形起伏的棋盤格（錄影點有橫坡，平面棋盤上坡側的腳看起來浮空、下坡側插進棋盤）
+    INIT += '; window.__TGon = true;'
+    SETUP = SETUP.replace("window.__shot = (view, D) =>", """if (window.__TGon) { const CH = (await import('/js/core.js')).height, N = 120, geo = new TH.PlaneGeometry(1, 1, N, N); geo.rotateX(-Math.PI / 2); const pos = geo.attributes.position, uv = geo.attributes.uv, base = []; for (let i = 0; i < pos.count; i++) base.push([pos.getX(i), pos.getZ(i)]);
+    const tex = window.__gtex.clone(); tex.repeat.set(1, 1); tex.offset.set(0, 0); tex.needsUpdate = true; const mesh = new TH.Mesh(geo, new TH.MeshStandardMaterial({ color: 0xffffff, roughness: 1, map: tex })); mesh.receiveShadow = true; window.__TGm = mesh; let last = null; const f = t => Math.sign(t) * 60 * (2 * Math.abs(t)) ** 2;
+    window.__TG = (px, pz) => { if (!last || Math.hypot(px - last[0], pz - last[1]) > 0.25) { last = [px, pz]; for (let i = 0; i < pos.count; i++) { const x = px + f(base[i][0]), z = pz + f(base[i][1]); pos.setXYZ(i, x, CH(x, z) + 0.003, z); uv.setXY(i, x / 2, -z / 2); } pos.needsUpdate = true; uv.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); } return mesh; }; }
+  window.__shot = (view, D) =>""",1).replace("W.scene.add(gm);", "if (window.__TG) W.scene.add(window.__TG(px, pz)); else W.scene.add(gm);").replace("W.scene.remove(gm);", "W.scene.remove(gm); if (window.__TGm) W.scene.remove(window.__TGm);")
 GD = float(os.environ.get('GD', '11'))
+GHJS = r"""() => { const X = __v.model.lx, TH = X.root.position.constructor, CH = window.__CH; if (!CH) return 'null'; return JSON.stringify(X.LEGS.map(L => { const h = L.h.getWorldPosition(new TH()), t = L.t.getWorldPosition(new TH()); return [L.id, +(h.y - CH(h.x, h.z)).toFixed(4), +(t.y - CH(t.x, t.z)).toFixed(4)]; }).concat([(() => { const s = X.stage.getWorldPosition(new TH()), q = X.stage.getWorldQuaternion(new X.root.quaternion.constructor()), f = new TH(0, 0, 1).applyQuaternion(q), hd = X.root.getObjectByName('head'), hp = hd ? hd.getWorldPosition(new TH()) : s; return [+s.x.toFixed(3), +s.z.toFixed(3), +(Math.atan2(f.x, f.z) * 57.3).toFixed(1), +(hp.y - CH(hp.x, hp.z)).toFixed(3), +hp.x.toFixed(3), +hp.z.toFixed(3)]; })()])); }"""      # 11-27 M2 GH：每隻腳掌根／趾尖離「真實地形」高（公尺），最後一組＝stage 外觀位置 xz、外觀朝向、頭骨離地高、頭骨 xz
+MATJS = r"""() => { let o = null; __v.model.lx.stage.traverse(m => { if (!o && m.isMesh && m.material && m.material.userData.mfx) o = m.material; }); if (!o) return 'null'; const U = o.userData.mfx, W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); return JSON.stringify([+o.emissive.r.toFixed(3), +U.rim.value.r.toFixed(3), +U.fade.value.toFixed(3), +U.gain.value.toFixed(3), D ? +D.intensity.toFixed(3) : -1, D ? +(Math.atan2(D.position.x - D.target.position.x, D.position.z - D.target.position.z) * 57.3).toFixed(1) : 0, +W.renderer.toneMappingExposure.toFixed(3), +(__v.model.root.rotation.y * 57.3).toFixed(1), +(__v.flash || 0).toFixed(3)]); }"""      # 11-27 M2 MAT：[閃光 emissive.r, 輪廓光 rim.r, 淡出 fade, gain, 主光強度, 主光方位°, 曝光, 模型朝向°, v.flash]（m08 變暗查因）
 STATJS = r'''() => { const m = __v.model, X = m.lx; if (!X) return null; const st = X.stage, TH = st.position.constructor; const v = new TH(), out = { body: 1e9, head: 1e9, leg: 1e9, tail: 1e9, fleg: 1e9 };
   const legB = new Set(), headB = new Set(), tailB = new Set(), fB = new Set(); for (const L of X.LEGS) L.ch[0].traverse(o => { if (o.isBone) { legB.add(o); if (L.kind === 'F') fB.add(o); } }); const hd = X.root.getObjectByName('head'); if (hd) hd.traverse(o => { if (o.isBone) headB.add(o); }); const tl = X.root.getObjectByName('tail_01'); if (tl) tl.traverse(o => { if (o.isBone) tailB.add(o); });
   const gy = st.getWorldPosition(new TH()).y, sc = st.getWorldScale(new TH()).x;
@@ -30,6 +38,9 @@ def grab(page, name, k, D=None):
     if os.environ.get('LIT'): print('LIT', name, k, page.evaluate("(() => { const W = __game.W, o = []; W.scene.traverse(x => { if (x.isLight) o.push(x.type[0] + x.type[1] + ':' + x.intensity.toFixed(2) + (x.color ? '/' + x.color.getHexString() : '')); }); return JSON.stringify({ L: o.slice(0, 8), exp: W.renderer.toneMappingExposure, zone: __game.me.zone, me: [Math.round(__game.me.x), Math.round(__game.me.z)], v: [Math.round(__v.x), Math.round(__v.z)] }); })()"), flush=True)      # 燈光強度／曝光／玩家所在區（查各段亮度不一）
     if os.environ.get('HSP'): print('HS', name, k, page.evaluate('() => [+(window.__hs || 0).toFixed(3), +(window.__gt / 1000).toFixed(3), +(__v.stT || 0).toFixed(3), __v.st, +__v.x.toFixed(3), +__v.z.toFixed(3), +((__v.model.lx && __v.model.lx.ctl.cuL) || 0).toFixed(3), (q => +(Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x)) * 57.3).toFixed(1))(__v.model.lx.stage.getWorldQuaternion(new __v.model.lx.root.quaternion.constructor())), +(__v.model.root.rotation.y * 57.3).toFixed(1)]'), flush=True)
     if os.environ.get('WX'): print('WX', name, k, page.evaluate("JSON.stringify(__v.model.lx.LEGS.map(L => { const X = __v.model.lx, TH = X.root.position.constructor, h = L.h.getWorldPosition(new TH()), t = L.t.getWorldPosition(new TH()), g = X.stage.getWorldPosition(new TH()).y; return [L.id, +h.x.toFixed(3), +h.z.toFixed(3), +(h.y - g).toFixed(3), +(t.y - g).toFixed(3), L.c && L.c.air ? 1 : 0, L.c && L.c.air ? +(L.c.u || 0).toFixed(2) : -1, +t.x.toFixed(3), +t.z.toFixed(3), ...(L.fin && L.fin.p ? (q => [+q.x.toFixed(3), +q.z.toFixed(3)])(X.stage.localToWorld(L.fin.p.clone())) : [0, 0]), ...(L.c && L.c.Wl ? [+L.c.Wl.x.toFixed(3), +L.c.Wl.z.toFixed(3)] : [0, 0]), L.dbg && L.dbg.err != null ? +L.dbg.err.toFixed(3) : -1]; }).concat([[+(__v.model.root.position.x).toFixed(3), +(__v.model.root.position.z).toFixed(3), +(__v.model.root.rotation.y * 57.3).toFixed(1)]]))"), flush=True)      # 11-27 A1：每隻腳掌根／趾尖的世界座標（遊戲公尺）、掌根與趾尖離地高、是否擺盪、擺盪進度；最後一組是 root 位置與朝向
+    if os.environ.get('GH'): print('GH', name, k, page.evaluate(GHJS), flush=True)
+    if os.environ.get('GP'): print('GP', name, k, page.evaluate("JSON.stringify([__v.model.lx.ctl.gP || null, __v.model.lx.ctl.mode, +(__v.model.lx.ctl.ph || 0).toFixed(3)])"), flush=True)      # 11-27 M2：步態速度／基準速度／步態混合、模式、步態時鐘
+    if os.environ.get('MAT'): print('MAT', name, k, page.evaluate(MATJS), flush=True)
     D = D or GD
     if os.environ.get('STAT'): print('STAT', name, k, page.evaluate(STATJS), flush=True)
     if os.environ.get('NOFADE'): page.evaluate("() => { __v.model.root.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const M of ms) { const U = M.userData && M.userData.mfx; if (U && __w.st !== 6) { U.fade.value = 1; M.opacity = 1; } } }); }")      # 錄影用：關掉遊戲『大型野獸擋住鏡頭時變網點』的功能（錄影鏡頭不是遊戲鏡頭）
@@ -47,6 +58,7 @@ with sync_playwright() as p:
     page.goto(f'http://127.0.0.1:{port}/index.html' + os.environ.get('QS', '')); page.wait_for_function('window.__game || document.getElementById("fatal")', timeout=300000)
     page.fill('#nameIn', '測試員'); page.click('#enterBtn'); page.wait_for_function('__game.input.creator === true'); page.click('#crDone'); page.wait_for_function('__game.input.started === true')
     print('setup', page.evaluate(SETUP, [typ, elite]), flush=True)
+    page.evaluate("async () => { window.__CH = (await import('/js/core.js')).height; }")      # 11-27 M2：GH 探針用真實地形高度
     page.evaluate("async () => { window.__fx = (await import('/js/actors.js')).fx; window.__nohs = %s; window.__gt = 0; }" % ('true' if os.environ.get('NOHS') else 'false'))      # Q1HS：NOHS=1 關掉遊戲的命中停頓（hitstop＝挨打時整個遊戲 dt 變 0.06 倍，畫面連地面都幾乎不動）；HSP=1 每格印停頓量與遊戲時間
     adv = lambda: page.evaluate('() => { if (window.__fx) { if (window.__nohs) window.__fx.hitstop = 0; window.__hs = window.__fx.hitstop; } const r = window.__adv(); window.__gt += window.__hs > 0 ? 0.06 * 8.333 : 8.333; return r; }'); J = page.evaluate
     J(RESET)
@@ -87,9 +99,15 @@ with sync_playwright() as p:
             r = adv()
             if r.get('nomodel'): continue
             ok = ok + 1 if (r['st'] == 1 and r.get('sp', 0) > 0.7 * r.get('run', 9)) else 0
-            if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
+            if ok > 30 and i % 4 == 0:
+                grab(page, name, k)
+                cn1 = J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0, __v.model.lx.ctl.mode])')
+                if k == 0: cn0 = J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0])')
+                if k > 0 and cn1 != getattr(chase, 'cprev', None): print('CNF', name, k, cn1, flush=True)      # 11-27 M2：奔跑段也印 rlUp／hx 計數變動的格
+                chase.cprev = cn1; k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
+        if k: print('CNT', name, cn0, J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0])'), flush=True)
     if 'a' in SC: settle(); J('() => { const w = __w, v = __v; ' + ('const W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; w.wx = w.x + Math.sin(h) * 16; w.wz = w.z + Math.cos(h) * 16;' if os.environ.get('SUNSIDE') else 'w.wx = w.x; w.wz = w.z + 16;') + ' w.wanderT = 99; }'); run('a_walk', int(os.environ.get('AN', '720')), each='() => { __w.wanderT = 99; }')      # SUNSIDE=1：朝『鏡頭那一側（右側）向陽』的方向走（審核比顏色要看向陽面）
     if 'r' in SC:
         settle()
@@ -111,7 +129,13 @@ with sync_playwright() as p:
     if 'u' in SC: settle(); print('force tug', J(FORCEC, ['monkey_tug', 1.8, 0.55, 0.25, 0.7, None, 2])); run('u_tug', 210)
     if 'w' in SC: settle(); J("() => { window.__t8 = 0; }"); run('w_warn', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
     if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")
-    if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
+    SUNF = '() => { const w = __w, v = __v; const W = __game.W; let D = null; W.scene.traverse(x => { if (x.isDirectionalLight && (!D || x.intensity > D.intensity)) D = x; }); const sx = D ? D.position.x - D.target.position.x : 1, sz = D ? D.position.z - D.target.position.z : 0, h = Math.atan2(-sz, sx); w.f = v.f = h; w.wanderT = 99; if (v.model && v.model.lx) v.model.lx.ctl.vyW = null; }'      # 朝向：右側（側面鏡頭那側）向陽
+    if 'j' in SC:
+        settle()
+        if os.environ.get('SUNSIDE'):      # 11-27 M2：倒地也固定朝向（m08 接在被打後錄，朝向是被打結束時的朝向，背光那面對著鏡頭＝整段暗 22～31%）
+            J(SUNF)
+            for i in range(60): adv(); J(SUNF)
+        J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
     if os.environ.get('RB'): print('RB', J('JSON.stringify(__v.model.lx && __v.model.lx.RB)'), flush=True)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
     b.close()
