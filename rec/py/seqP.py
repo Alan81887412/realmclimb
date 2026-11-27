@@ -40,7 +40,9 @@ with sync_playwright() as p:
     print('spawn', page.evaluate("async () => { const o = await window.__beast08a.spawn('porc', { d: 12, n: 1 }); return o.length; }"), flush=True)
     print('setup', page.evaluate(SETUP, [typ, elite]), flush=True)
     page.evaluate("async () => { window.__fx = (await import('/js/actors.js')).fx; window.__nohs = %s; window.__gt = 0; }" % ('true' if os.environ.get('NOHS') else 'false'))      # Q1HS：NOHS=1 關掉遊戲的命中停頓（hitstop＝挨打時整個遊戲 dt 變 0.06 倍，畫面連地面都幾乎不動）；HSP=1 每格印停頓量與遊戲時間
-    adv = lambda: page.evaluate('() => { if (window.__fx) { if (window.__nohs) window.__fx.hitstop = 0; window.__hs = window.__fx.hitstop; } const r = window.__adv(); window.__gt += window.__hs > 0 ? 0.06 * 8.333 : 8.333; return r; }'); J = page.evaluate
+    if os.environ.get('CLRB'): page.evaluate("async () => { window.__dsim = (await import('/js/game.js')).debug.sim; }")      # 11-27 P2 CLRB=1：錄影時把箭豬 20 公尺內的其他野獸移到 60 公尺外（噴刺環收招時一隻閒晃的灰狼走到 2 公尺內，群體推擠把箭豬推 6 公分、腳跟著亂跨）
+    CLRJ = "if (window.__dsim) for (const o of window.__dsim) { if (o === __w || o.st === 6) continue; const dx = o.x - __w.x, dz = o.z - __w.z, d = Math.hypot(dx, dz); if (d < 20) { const k = 60 / Math.max(d, 0.1); o.x = __w.x + dx * k; o.z = __w.z + dz * k; o.hx = o.x; o.hz = o.z; o.wx = o.x; o.wz = o.z; o.target = null; o.st = 0; o.t = 0; } }" if os.environ.get('CLRB') else ''
+    adv = lambda: page.evaluate('() => { ' + CLRJ + ' if (window.__fx) { if (window.__nohs) window.__fx.hitstop = 0; window.__hs = window.__fx.hitstop; } const r = window.__adv(); window.__gt += window.__hs > 0 ? 0.06 * 8.333 : 8.333; return r; }'); J = page.evaluate
     J(RESET)
     for i in range(240): adv()
     def settle(n=90):
