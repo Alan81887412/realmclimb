@@ -1,1 +1,1 @@
-[{"name":"A1_ibex_m_1520","script":"seqI.py","animal":"ibex","env":{"QS":"?ibex=20","NOFADE":"1","FIXCAM":"1","NOHS":"1","SC":"m","LD":"1","WX":"1","PRST":"1","HSP":"1"}},{"name":"A1_ibex_mh_1520","script":"seqI.py","animal":"ibex","env":{"QS":"?ibex=20","NOFADE":"1","FIXCAM":"1","SC":"m","HSF":"120:0.09","LD":"1","WX":"1","PRST":"1","HSP":"1"}}]
+[{"name":"A1_ibex_ij_1530","script":"seqI.py","animal":"ibex","env":{"QS":"?ibex=20","NOFADE":"1","FIXCAM":"1","NOHS":"1","SC":"i,j","IN":"240","LD":"1","WX":"1","PRST":"1","HSP":"1"}}]
