@@ -20,6 +20,7 @@ def grab(page, name, k, D=None):
     if os.environ.get('NOFADE'): page.evaluate("() => { __v.model.root.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const M of ms) { const U = M.userData && M.userData.mfx; if (U && __w.st !== 6) { U.fade.value = 1; M.opacity = 1; } } }); }")      # 錄影用：關掉遊戲『大型野獸擋住鏡頭時變網點』的功能（錄影鏡頭不是遊戲鏡頭）
     for vw in ('side', 'd45'):
         u = page.evaluate("([a,b]) => window.__shot(a,b)", [vw, D]); open(f'{outd}/{name}_{vw}_{k:03d}.jpg', 'wb').write(base64.b64decode(u.split(',', 1)[1]))
+WXJS = 'JSON.stringify(__v.model.lx.LEGS.map(L => { const X = __v.model.lx, TH = X.root.position.constructor, h = L.h.getWorldPosition(new TH()), t = L.t.getWorldPosition(new TH()), g = X.stage.getWorldPosition(new TH()).y; return [L.id, +h.x.toFixed(3), +h.z.toFixed(3), +(h.y - g).toFixed(3), +(t.y - g).toFixed(3), L.c && L.c.air ? 1 : 0, L.c && L.c.air ? +(L.c.u || 0).toFixed(2) : -1, +t.x.toFixed(3), +t.z.toFixed(3), ...(L.fin && L.fin.p ? (q => [+q.x.toFixed(3), +q.z.toFixed(3)])(X.stage.localToWorld(L.fin.p.clone())) : [0, 0]), ...(L.c && L.c.Wl ? [+L.c.Wl.x.toFixed(3), +L.c.Wl.z.toFixed(3)] : [0, 0]), L.dbg && L.dbg.err != null ? +L.dbg.err.toFixed(3) : -1]; }).concat([[+(__v.model.root.position.x).toFixed(3), +(__v.model.root.position.z).toFixed(3), +(__v.model.root.rotation.y * 57.3).toFixed(1)]]))'      # 11-27 N1：每格腳掌根／趾尖世界座標（同 seqI 的 WX）
 RESET = "() => { const v = __v, w = __w, g = __game; w.st = 0; w.t = 0; w.target = null; w.M = null; w.mvc = 0; w.hp = w.hpMax || w.hp; __place(v.z); g.me.x = v.x; g.me.z = v.z - 60; }"
 FORCE = """async ([name, dist, wd, sd, rd]) => { const C = await import('/js/core.js'), v = __v, w = __w, g = __game; g.me.x = v.x + Math.sin(v.f) * dist; g.me.z = v.z + Math.cos(v.f) * dist;
   w.target = 'self'; w.provoked = true; w.seen = {}; w.M = C.MOVES[name]; w.arg = 0; w.mvc = (w.M.i + 1); w.st = 2; w.t = 0; w.wd = wd; w.sd = sd; w.rd = rd; w.cd = 9; w.chain = null; return !!w.M; }"""
@@ -50,6 +51,7 @@ with sync_playwright() as p:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
                 if os.environ.get('SPD'): print('SP', name, k, r.get('st'), r.get('sp'), r.get('run'), r.get('sc'), flush=True)
                 if os.environ.get('YAW'): print('YW', name, k, J("JSON.stringify((() => { const X = __v.model.lx, T = X.root.quaternion.constructor, V3 = X.root.position.constructor, y = o => { const q = new T(); o.getWorldQuaternion(q); const f = new V3(0, 0, 1).applyQuaternion(q); return +(Math.atan2(f.x, f.z) * 57.3).toFixed(1); }; return [__w.st, +(__w.t||0).toFixed(2), y(X.stage), X.stage.parent ? y(X.stage.parent) : null, y(X.root), X.ctl.vyW != null ? +(X.ctl.vyW * 57.3).toFixed(1) : null, X.ctl.mode, X.ctl.sT != null ? +X.ctl.sT.toFixed(3) : null, X.ctl.hkT != null ? +X.ctl.hkT.toFixed(3) : null, +((X.INR && X.INR.dt) || 0).toFixed(4)]; })())"), flush=True)
+                if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
                 if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
                 grab(page, name, k); k += 1
         print(name, 'frames', k, 'last', {a: r.get(a) for a in ('st', 'stT', 'd')}, flush=True)
@@ -61,7 +63,10 @@ with sync_playwright() as p:
             r = adv()
             if r.get('nomodel'): continue
             ok = ok + 1 if (r['st'] == 1 and r.get('sp', 0) > 0.7 * r.get('run', 9)) else 0
-            if ok > 30 and i % 4 == 0: grab(page, name, k); k += 1
+            if ok > 30 and i % 4 == 0:      # 11-27 N1：奔跑段也印腿資料（LD／WX／YAW），審核要的
+                if os.environ.get('LD'): print('LD', name, k, J("JSON.stringify(__v.model.lx.LEGS.map(L => L.dbg ? [L.id, L.dbg.aE, L.dbg.aW, L.dbg.kA, L.dbg.df, L.dbg.fL, L.dbg.r] : [L.id]))"), flush=True)
+                if os.environ.get('WX'): print('WX', name, k, J(WXJS), flush=True)
+                grab(page, name, k); k += 1
             if k >= nmax or r.get('d', 99) < 9: break
         print(name, 'frames', k, flush=True)
     if 'a' in SC: settle(); J('() => { const w = __w; w.wx = w.x; w.wz = w.z + 16; w.wanderT = 99; }'); run('a_walk', int(os.environ.get('AN', '720')), each='() => { __w.wanderT = 99; }')
@@ -72,7 +77,8 @@ with sync_playwright() as p:
     if 'k' in SC: settle(); print('force buck', J(FORCEC, ['bison_buck', -2.6, 0.5, 0.22, 0.6, None, 2])); run('k_buck', 200)
     if 'z' in SC: settle(); print('force daze', J(FORCEC, ['bison_daze', 6.0, 0.1, 0.1, 2.6, None, 4])); run('z_daze', 340)
     if 'w' in SC: settle(); J("() => { window.__t8 = 0; }"); run('w_warn', 300, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; w.st = 8; w.t = window.__t8; v.st = 8; v.stT = window.__t8; w.target = null; }")
-    if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }")
+    if 'i' in SC: settle(); J("() => { window.__t8 = 0; }"); os.environ.get('FIXCAM') and J('window.__fyFix = __v.model.root.rotation.y');      # 11-27 N1：被打段鏡頭固定在世界（原本跟著遊戲朝向轉，結尾看起來被拖著轉）
+    if 'i' in SC: run('i_stagger', 150, each="() => { const w = __w, v = __v; window.__t8 += 1 / 120; if (window.__t8 < 0.9) { w.st = 5; w.t = window.__t8; w.stagDur = 1.0; v.st = 5; v.stT = window.__t8; } }"); J('window.__fyFix = null')
     if 'j' in SC: settle(); J("() => { const w = __w; w.hp = 0; w.st = 6; w.t = 0; }"); run('j_dead', 200)
     if os.environ.get('RB'): print('RB', J('JSON.stringify(__v.model.lx && __v.model.lx.RB)'), flush=True)
     print('lynx', J('JSON.stringify({bad: window.__lynx20 && __lynx20.bad(), mode: __v.model.lx && __v.model.lx.mode})'), 'errs', errors[:5], flush=True)
