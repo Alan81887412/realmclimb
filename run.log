@@ -1,0 +1,8 @@
+setup {'n': 41, 'id': 5}
+a_walk frames 60 last {'st': 0, 'stT': 3.3, 'd': 59.4}
+force charge True
+c_charge frames 75 last {'st': 2, 'stT': 0.06, 'd': 2.4}
+j_dead frames 50 last {'st': 6, 'stT': 1.67, 'd': 59.3}
+lynx {"bad":false,"mode":"dead"} errs ['[p] console.error: Failed to load resource: net::ERR_FAILED']
+EXIT 0
+DONE
