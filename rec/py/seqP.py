@@ -91,7 +91,7 @@ with sync_playwright() as p:
         n = int(os.environ.get('PHOLD', '0')) if seg in os.environ.get('PHSEG', 'qbki') else 0
         for _ in range(n): J("() => { const w = __w; w.st = 0; w.t = 0; w.wanderT = 99; w.wx = w.x; w.wz = w.z; }"); adv()
     if 'q' in SC: settle(); phold('q'); print('force quill', J(FORCE, ['porc_quill', float(os.environ.get('QD', '3.0')), 0.6, 2.2, 0.8])); run('q_quill', 560)
-    if 'b' in SC: settle(); phold('b'); print('force burst', J(FORCE, ['porc_burst', 3.0, 0.9, 0.25, 0.9])); run('b_burst', 360)
+    if 'b' in SC: settle(); phold('b'); print('force burst', J(FORCE, ['porc_burst', float(os.environ.get('BD', '3.0')), 0.9, 0.25, 0.9])); run('b_burst', 360)
     if 'k' in SC:
         settle(); phold('k'); print('force back', J(FORCE, ['porc_back', -3.0, 0.6, 0.5, 0.9]))
         if os.environ.get('FIXCAM'): J('window.__fyFix = __v.model.root.rotation.y')      # 倒衝：鏡頭固定在世界，看得出往後衝的位移
