@@ -72,7 +72,10 @@ with sync_playwright() as p:
             if i % every == 0:
                 if os.environ.get('PRST'): print('ST', name, k, r.get('st'), r.get('stT'), J('JSON.stringify([__v.model.lx && __v.model.lx.ctl.mode, +(__v.model.lx.INR.look||0).toFixed(1), +(__v.model.lx.INR.hk||0).toFixed(2), __v.model.lx.ctl.tA, __v.model.lx.RB.tail.length])'), flush=True)
                 if os.environ.get('SPD'): print('SP', name, k, r.get('st'), r.get('sp'), r.get('run'), r.get('sc'), flush=True)
-                grab(page, name, k); k += 1
+                grab(page, name, k)
+                cn1 = J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0, __v.model.lx.ctl.mode])')
+                if cn1 != getattr(run, 'cprev', None) and k > 0: print('CNF', name, k, cn1, flush=True)      # 11-27 M1：這一格 rlUp／hx 計數有變（＝改動在這格生效）
+                run.cprev = cn1; k += 1
         print(name, 'frames', k, 'last', {a: r.get(a) for a in ('st', 'stT', 'd')}, flush=True)
         print('CNT', name, cn0, J('JSON.stringify([__v.model.lx.ctl.rlN || 0, __v.model.lx.ctl.hxN || 0])'), flush=True)
         if os.environ.get('FIXALL'): J('window.__fyFix = null')
