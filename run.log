@@ -1,0 +1,5 @@
+setup {'n': 20, 'id': 407}
+a_walk frames 50 last {'st': 0, 'stT': 5.04, 'd': 62.3}
+lynx {"bad":false,"mode":"loco"} errs ['[p] console.error: Failed to load resource: net::ERR_FAILED']
+EXIT 0
+DONE
