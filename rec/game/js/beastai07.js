@@ -23,7 +23,7 @@ const hyp = Math.hypot, sin = Math.sin, cos = Math.cos, PI = Math.PI;
 //   鬥犬 13 級 3 隻一群：單隻比同級灰狼略強（血 300、攻 38），三隻合計血量約 1.4 頭同級猛虎；難在協同。
 // 經驗：monStats 已經乘上數值定案的 ×1.25^(等級−1)；每點血量給的經驗介於棕熊與猛虎之間。掉落先用現有的素材（新素材等 data07 定）。
 export const MON07 = {
-  bison: { name: '野牛', temper: 'neutral', hp: 260, dmg: 40, exp: 40, speed: 6.2, aggro: 12, orbit: 10, pace: 1.15, atk: 'charge', wind: 1.35, dash: 19, dashT: 1.15, recover: 1.0, hitR: 2.4, size: 1.0, body: 1.15, tagH: 2.7, gold: [8, 15], drops: [['meat', 0.9], ['meat', 0.6]], moves: ['bison_rush', 'bison_hook', 'bison_buck'], orbs: ['wall', 'cleave'] },
+  bison: { name: '野牛', temper: 'neutral', warnOnly: 1, warnR: 8, hp: 260, dmg: 40, exp: 40, speed: 6.2, aggro: 12, orbit: 10, pace: 1.15, atk: 'charge', wind: 1.35, dash: 19, dashT: 1.15, recover: 1.0, hitR: 2.4, size: 1.0, body: 1.15, tagH: 2.7, gold: [8, 15], drops: [['meat', 0.9], ['meat', 0.6]], moves: ['bison_rush', 'bison_hook', 'bison_buck'], orbs: ['wall', 'cleave'] },
   python: { name: '沼蟒', temper: 'ambush', hp: 780, dmg: 50, exp: 70, speed: 3.6, aggro: 10, orbit: 5, pace: 1.25, atk: 'coil', wind: 0.9, dash: 0, dashT: 0.34, recover: 0.9, hitR: 2.4, size: 1.0, body: 1.05, tagH: 2.6, gold: [15, 26], drops: [['meat', 0.4]], moves: ['py_spit', 'py_coil', 'py_sweep', 'py_bite'], orbs: ['heal', 'wall'] },
   dog: { name: '斷鍊鬥犬', temper: 'pack', hp: 300, dmg: 38, exp: 30, speed: 7.0, aggro: 15, orbit: 5.2, atk: 'lunge', wind: 0.55, dash: 6.2, dashT: 0.32, recover: 0.7, hitR: 1.5, size: 1.0, body: 0.8, tagH: 2.0, gold: [6, 11], drops: [], moves: ['dog_bite', 'dog_chain'], orbs: ['dash', 'blade'] }
 };
@@ -206,8 +206,26 @@ function hostBison(w, X, s) {
   if (w.st === MST.WIND && M === MOVES.bison_regore) {      // 回身：照實際的轉速轉過來（不是瞬間轉向）
     if (w.t <= dt * 1.5 && s.f != null) w.f = s.f; if (tgt) face(w, tgt.x, tgt.z, 4.2, dt);
     if (w.t >= w.wd) goStrike(w); return true; }
+  if (MON.bison.warnOnly && (w.st === MST.IDLE || w.st === MST.WARN)) {      /* 11-27 N3：野牛警告（溫和：靠太近只警告、不主動攻擊） */
+    if (w.provoked || w.target) { if (w.st === MST.WARN) { w.st = MST.CHASE; w.t = 0; s.wt = null; } }      // 警告中被打（或同群被打、整群被叫上）：照原本反擊
+    else if (warnBison(w, X, s)) return true;
+  }
   if (w.st === MST.CHASE) return chaseBison(w, X, s);
   return false;
+}
+/* 11-27 N3 野牛警告（MON07.bison.warnOnly／warnR，只有野牛）：玩家走進 warnR 公尺（雨天乘 senseK、菁英 ×1.3）就進警告（st 8，跟護地盤的熊同一個狀態，主控端決定、照原本的狀態同步）；
+   警告中停下、照每秒最多約 75° 轉向最近的玩家（先站定 0.3 秒，轉向有起步／收尾，不是一格轉過去；偏差 20° 以上才轉、轉到 3° 內停）；動作（抬頭→低頭→刨地→噴氣，越待越頻繁）由動作引擎照 st 8 自己排。
+   玩家退到 warnR＋2 公尺外就回閒晃（先站 2～4 秒再走）；一直待著也不主動攻擊。被打才照原本反擊（上面 provoked）。不設 w.target（設了的話一回閒晃，遊戲原本的流程會直接開追）。 */
+function warnBison(w, X, s) {
+  const dt = X.dt, D = MON.bison, R = (D.warnR || 8) * (w.elite ? 1.3 : 1) * (H8.fn && H8.fn.senseK ? H8.fn.senseK(w) : 1);
+  let who = null, p = null, bd = 1e9; for (const [id, q] of X.players) { const d = hyp(q.x - w.x, q.z - w.z) - (id === s.wt ? 0.5 : 0); if (d < bd) { bd = d; who = id; p = q; } }      // 正在警告的那位稍微優先（兩人距離差不多時不來回換人）
+  if (w.st === MST.IDLE) { if (!p || bd >= R) return false; w.st = MST.WARN; w.t = 0; s.wt = who; s.wTurn = false; s.wRate = 0; return true; }
+  if (!p || bd >= R + 2) { w.st = MST.IDLE; w.t = 0; s.wt = null; w.wanderT = 2 + Math.random() * 2; w.wx = w.x; w.wz = w.z; return true; }
+  s.wt = who; const e = Math.abs(angDiff(w.f, Math.atan2(p.x - w.x, p.z - w.z)));
+  if (e > 0.35) s.wTurn = true; else if (e < 0.05) s.wTurn = false;
+  const want = w.t < 0.3 || !s.wTurn ? 0 : 1.3; s.wRate = (s.wRate || 0) + clamp(want - (s.wRate || 0), -3.2 * dt, 3.2 * dt);      // 轉速 0 ↔ 1.3 弧度／秒，約 0.4 秒加減速
+  if (s.wRate > 1e-3) face(w, p.x, p.z, s.wRate, dt);
+  return true;
 }
 function chaseBison(w, X, s) {
   const tgt = X.tgt, dt = X.dt; if (!tgt) { w.st = MST.IDLE; w.t = 0; w.wanderT = 0; return true; }
